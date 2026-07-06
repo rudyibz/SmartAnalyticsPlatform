@@ -1,0 +1,69 @@
+# Entornos virtuales
+
+.venv/
+venv/
+
+# Python
+
+**pycache**/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Logs
+
+logs/
+*.log
+
+# Variables de entorno
+
+.env
+
+# Base de datos
+
+*.db
+*.sqlite3
+
+# Pytest
+
+.pytest_cache/
+
+# Mypy
+
+.mypy_cache/
+
+# Ruff
+
+.ruff_cache/
+
+# Cobertura
+
+.coverage
+htmlcov/
+
+# VS Code
+
+.vscode/
+
+# JetBrains
+
+.idea/
+
+# macOS
+
+.DS_Store
+
+# Windows
+
+Thumbs.db
+
+# Build
+
+dist/
+build/
+*.egg-info/
+
+# Alembic
+
+alembic.ini
