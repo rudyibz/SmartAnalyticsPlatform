@@ -1,0 +1,27 @@
+.header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:40px;
+
+}
+
+.header h1{
+
+    color:white;
+
+    font-size:42px;
+
+}
+
+.user{
+
+    color:#CBD5E1;
+
+    font-size:18px;
+
+}

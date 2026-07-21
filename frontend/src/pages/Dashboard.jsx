@@ -1,64 +1,74 @@
 import { useEffect, useState } from "react";
+
+import MainLayout from "../layouts/MainLayout";
+import CandlestickChart from "../components/CandlestickChart";
+import MetricCard from "../components/MetricCard";
+import ChartCard from "../components/ChartCard";
+import RecommendationCard from "../components/RecommendationCard";
+import Watchlist from "../components/Watchlist";
+
+import SearchBar from "../components/SearchBar";
 import { getAnalysis } from "../services/marketService";
 
-function Dashboard() {
+export default function Dashboard() {
 
+    const [symbol, setSymbol] = useState("BTC-USD");
     const [data, setData] = useState(null);
 
     useEffect(() => {
 
-        async function loadData() {
+        getAnalysis(symbol)
+            .then(setData)
+            .catch(console.error);
 
-            try {
-
-                const result = await getAnalysis("BTC-USD");
-
-                setData(result);
-
-            } catch (error) {
-
-                console.error(error);
-
-            }
-
-        }
-
-        loadData();
-
-    }, []);
+    }, [symbol]);
 
     if (!data) {
-
-        return <h2>Cargando datos...</h2>;
-
+        return (
+            <MainLayout>
+                <h2>Cargando...</h2>
+            </MainLayout>
+        );
     }
 
     return (
 
-        <div style={{ padding: "40px" }}>
+        <MainLayout>
 
-            <h1>SmartAnalyticsPlatform</h1>
+            <SearchBar onSearch={setSymbol} />
+            <Watchlist onSelect={setSymbol} />
+            <div className="cards">
 
-            <hr />
+                <MetricCard
+                    title="Price"
+                    value={`$${data.price}`}
+                />
 
-            <h2>{data.symbol}</h2>
+                <MetricCard
+                    title="Score"
+                    value={data.score}
+                />
 
-            <p>Precio: {data.price}</p>
+                <MetricCard
+                    title="RSI"
+                    value={data.rsi14}
+                />
 
-            <p>Score: {data.score}</p>
+                <MetricCard
+                    title="Trend"
+                    value={data.trend}
+                />
 
-            <p>Recomendación: {data.recommendation}</p>
+            </div>
 
-            <p>Tendencia: {data.trend}</p>
+            <CandlestickChart symbol={symbol} />
 
-            <p>RSI: {data.rsi14}</p>
+            <RecommendationCard
+                recommendation={data.recommendation}
+            />
 
-            <p>MACD: {data.macd}</p>
-
-        </div>
+        </MainLayout>
 
     );
 
 }
-
-export default Dashboard;

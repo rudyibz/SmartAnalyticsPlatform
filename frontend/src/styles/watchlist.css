@@ -1,0 +1,49 @@
+.watchlist{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+
+    gap:16px;
+
+    margin-bottom:30px;
+
+}
+
+.watchlist h2{
+
+    grid-column:1/-1;
+
+    color:white;
+
+}
+
+.watchlist button{
+
+    background:#1E293B;
+
+    border:none;
+
+    color:white;
+
+    border-radius:16px;
+
+    padding:20px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+    text-align:center;
+
+    box-shadow:0 5px 20px rgba(0,0,0,.2);
+
+}
+
+.watchlist button:hover{
+
+    background:#2563EB;
+
+    transform:translateY(-3px);
+
+}
