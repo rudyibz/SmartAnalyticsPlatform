@@ -26,3 +26,20 @@ venv/
 # macOS / Windows
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Variables
+.env
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
