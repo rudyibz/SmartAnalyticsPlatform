@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 
 import MainLayout from "../layouts/MainLayout";
-import CandlestickChart from "../components/CandlestickChart";
+
 import MetricCard from "../components/MetricCard";
 import ChartCard from "../components/ChartCard";
 import RecommendationCard from "../components/RecommendationCard";
 import Watchlist from "../components/Watchlist";
-
+import AIAnalysisCard from "../components/AIAnalysisCard";
 import SearchBar from "../components/SearchBar";
+
 import { getAnalysis } from "../services/marketService";
 
 export default function Dashboard() {
@@ -17,26 +18,60 @@ export default function Dashboard() {
 
     useEffect(() => {
 
-        getAnalysis(symbol)
-            .then(setData)
-            .catch(console.error);
+        async function loadMarket() {
+
+            try {
+
+                const result = await getAnalysis(symbol);
+
+                setData(result);
+
+            } catch (error) {
+
+                console.error(error);
+
+            }
+
+        }
+
+        loadMarket();
 
     }, [symbol]);
 
     if (!data) {
+
         return (
+
             <MainLayout>
-                <h2>Cargando...</h2>
+
+                <div
+    style={{
+        padding: "40px",
+        textAlign: "center",
+        fontSize: "22px",
+    }}
+>
+    📈 Cargando datos del mercado...
+</div>
+
             </MainLayout>
+
         );
+
     }
 
     return (
 
         <MainLayout>
 
-            <SearchBar onSearch={setSymbol} />
-            <Watchlist onSelect={setSymbol} />
+            <SearchBar
+                onSearch={setSymbol}
+            />
+
+            <Watchlist
+                onSelect={setSymbol}
+            />
+
             <div className="cards">
 
                 <MetricCard
@@ -60,11 +95,26 @@ export default function Dashboard() {
                 />
 
             </div>
+            <h2
+    style={{
+        marginTop: "30px",
+        marginBottom: "15px",
+        color: "white",
+    }}
+>
+    📊 Price Chart
+</h2>
 
-            <CandlestickChart symbol={symbol} />
+            <ChartCard
+                symbol={symbol}
+            />
 
             <RecommendationCard
                 recommendation={data.recommendation}
+            />
+
+            <AIAnalysisCard
+                symbol={symbol}
             />
 
         </MainLayout>

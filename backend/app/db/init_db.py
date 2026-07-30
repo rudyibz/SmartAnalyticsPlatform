@@ -1,14 +1,18 @@
 from backend.app.db.base import Base
 from backend.app.db.database import engine
 
-# Importar todos los modelos
 from backend.app.models.user import User
+from backend.app.models.user_watchlist import UserWatchlist
+from backend.app.models.portfolio import Portfolio
+from backend.app.models.alert import Alert
 
+def init_database():
 
-def init_database() -> None:
+    print("===================================")
+    print("Tablas detectadas por SQLAlchemy:")
+    print(Base.metadata.tables.keys())
+    print("===================================")
+
     Base.metadata.create_all(bind=engine)
 
-
-if __name__ == "__main__":
-    init_database()
     print("Base de datos creada correctamente.")

@@ -36,12 +36,20 @@ def analyze_market(
     )
 
     return {
-        "symbol": symbol.upper(),
-        "price": data["price"],
-        "trend": data["trend"],
-        "score": score,
-        "recommendation": recommendation,
-        "confidence": confidence,
-        "risk": risk,
-        "summary": summary,
-    }
+    "symbol": symbol.upper(),
+    "price": data["price"],
+
+    "trend": data["trend"],
+
+    "rsi14": data["rsi14"],
+    "macd": data["macd"],
+    "signal": data["signal"],
+
+    "score": score,
+    "recommendation": recommendation,
+
+    "confidence": confidence,
+    "risk": risk,
+
+    "summary": summary,
+}
