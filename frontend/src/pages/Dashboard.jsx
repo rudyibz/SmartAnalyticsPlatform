@@ -1,123 +1,63 @@
-import { useEffect, useState } from "react";
-
-import MainLayout from "../layouts/MainLayout";
-
-import MetricCard from "../components/MetricCard";
-import ChartCard from "../components/ChartCard";
-import RecommendationCard from "../components/RecommendationCard";
-import Watchlist from "../components/Watchlist";
+import TopBar from "../components/TopBar";
+import TradingChart from "../components/TradingChart";
 import AIAnalysisCard from "../components/AIAnalysisCard";
-import SearchBar from "../components/SearchBar";
+import ScoreGauge from "../components/ScoreGauge";
+import RecommendationCard from "../components/RecommendationCard";
+import PortfolioTable from "../components/PortfolioTable";
+import WatchlistTable from "../components/WatchlistTable";
+import MarketScanner from "../components/MarketScanner";
+import IndicatorPanel from "../components/IndicatorPanel";
+import AlertsPanel from "../components/AlertsPanel";
+import NewsPanel from "../components/NewsPanel";
 
-import { getAnalysis } from "../services/marketService";
+import { useState } from "react";
 
 export default function Dashboard() {
 
-    const [symbol, setSymbol] = useState("BTC-USD");
-    const [data, setData] = useState(null);
-
-    useEffect(() => {
-
-        async function loadMarket() {
-
-            try {
-
-                const result = await getAnalysis(symbol);
-
-                setData(result);
-
-            } catch (error) {
-
-                console.error(error);
-
-            }
-
-        }
-
-        loadMarket();
-
-    }, [symbol]);
-
-    if (!data) {
-
-        return (
-
-            <MainLayout>
-
-                <div
-    style={{
-        padding: "40px",
-        textAlign: "center",
-        fontSize: "22px",
-    }}
->
-    📈 Cargando datos del mercado...
-</div>
-
-            </MainLayout>
-
-        );
-
-    }
+    const [symbol, setSymbol] = useState("AAPL");
 
     return (
 
-        <MainLayout>
+        <div className="dashboard">
 
-            <SearchBar
-                onSearch={setSymbol}
+            <TopBar
+                symbol={symbol}
+                setSymbol={setSymbol}
             />
 
-            <Watchlist
-                onSelect={setSymbol}
-            />
+            <div className="dashboard-content">
 
-            <div className="cards">
+                <div className="left-column">
 
-                <MetricCard
-                    title="Price"
-                    value={`$${data.price}`}
-                />
+                    <TradingChart symbol={symbol} />
 
-                <MetricCard
-                    title="Score"
-                    value={data.score}
-                />
+                    <PortfolioTable />
 
-                <MetricCard
-                    title="RSI"
-                    value={data.rsi14}
-                />
+                    <WatchlistTable />
 
-                <MetricCard
-                    title="Trend"
-                    value={data.trend}
-                />
+                    <MarketScanner />
+
+                </div>
+
+                <div className="right-column">
+
+                    <AIAnalysisCard symbol={symbol} />
+
+                    <ScoreGauge symbol={symbol} />
+
+                    <RecommendationCard symbol={symbol} />
+
+                    <IndicatorPanel symbol={symbol} />
+
+                    <AlertsPanel symbol={symbol} />
+
+                    <NewsPanel symbol={symbol} />
+
+                </div>
 
             </div>
-            <h2
-    style={{
-        marginTop: "30px",
-        marginBottom: "15px",
-        color: "white",
-    }}
->
-    📊 Price Chart
-</h2>
 
-            <ChartCard
-                symbol={symbol}
-            />
-
-            <RecommendationCard
-                recommendation={data.recommendation}
-            />
-
-            <AIAnalysisCard
-                symbol={symbol}
-            />
-
-        </MainLayout>
+        </div>
 
     );
 

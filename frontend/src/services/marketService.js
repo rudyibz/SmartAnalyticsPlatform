@@ -1,81 +1,31 @@
-import api from "../api/api";
+const API = "http://127.0.0.1:8001/api/v1";
 
-// ===============================
-// Análisis técnico
-// ===============================
-export async function getAnalysis(symbol = "BTC-USD") {
-
-    const response = await api.get(
-        `/market/analyze/${symbol}`
-    );
-
-    return response.data;
+export async function getPrice(symbol) {
+    const res = await fetch(`${API}/market/price/${symbol}`);
+    return await res.json();
 }
 
-// ===============================
-// Precio actual
-// ===============================
-export async function getPrice(symbol = "BTC-USD") {
-
-    const response = await api.get(
-        `/market/price/${symbol}`
-    );
-
-    return response.data;
+export async function getHistory(symbol) {
+    const res = await fetch(`${API}/market/history/${symbol}`);
+    return await res.json();
 }
 
-// ===============================
-// Histórico
-// ===============================
-export async function getHistory(
-    symbol = "BTC-USD",
-    period = "1mo"
-) {
-
-    const response = await api.get(
-        `/market/history/${symbol}?period=${period}`
-    );
-
-    return response.data;
+export async function getIndicators(symbol) {
+    const res = await fetch(`${API}/market/indicators/${symbol}`);
+    return await res.json();
 }
 
-// ===============================
-// Watchlist
-// ===============================
-export async function getWatchlist() {
-
-    const symbols = [
-        "BTC-USD",
-        "ETH-USD",
-        "SOL-USD",
-        "AAPL",
-        "TSLA",
-        "NVDA",
-        "MSFT",
-    ];
-
-    const results = await Promise.all(
-        symbols.map(async (symbol) => {
-            try {
-                return await getAnalysis(symbol);
-            } catch (error) {
-                console.error(`Error cargando ${symbol}`, error);
-                return null;
-            }
-        })
-    );
-
-    return results.filter(Boolean);
+export async function analyze(symbol) {
+    const res = await fetch(`${API}/market/analyze/${symbol}`);
+    return await res.json();
 }
 
-// ===============================
-// IA
-// ===============================
-export async function getAIAnalysis(symbol = "BTC-USD") {
+export async function getScore(symbol) {
+    const res = await fetch(`${API}/score/${symbol}`);
+    return await res.json();
+}
 
-    const response = await api.get(
-        `/ai/analysis/${symbol}`
-    );
-
-    return response.data;
+export async function getRecommendation(symbol) {
+    const res = await fetch(`${API}/recommendation/${symbol}`);
+    return await res.json();
 }

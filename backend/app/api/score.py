@@ -19,19 +19,25 @@ recommendation_engine = AIRecommendation()
 @router.get("/{symbol}")
 def score(symbol: str):
 
+    # Calcula indicadores
     df = engine.calculate(symbol)
 
+    # Análisis IA
     analysis_result = analysis.analyze(df)
 
+    # Score IA
     score_result = score_engine.calculate(analysis_result)
 
-    recommendation = recommendation_engine.generate(
-        score_result["score"]
-    )
+    # Recomendación IA (necesita score + RSI + ADX)
+    recommendation_result = recommendation_engine.generate({
+        **analysis_result,
+        **score_result,
+    })
 
+    # Respuesta final
     return {
         "symbol": symbol.upper(),
         **analysis_result,
         **score_result,
-        "recommendation": recommendation,
+        **recommendation_result,
     }

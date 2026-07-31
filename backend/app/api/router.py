@@ -1,11 +1,12 @@
 from fastapi import APIRouter
-
+from backend.app.api.news import router as news_router
 from backend.app.api.users import router as users_router
 from backend.app.api.auth import router as auth_router
 from backend.app.api.market import router as market_router
 from backend.app.api.ai import router as ai_router
 from backend.app.api.alert import router as alert_router
 api_router = APIRouter()
+from backend.app.api.scanner import router as scanner_router
 
 api_router.include_router(users_router)
 api_router.include_router(auth_router)
@@ -29,3 +30,5 @@ from backend.app.api.score import router as score_router
 api_router.include_router(score_router)
 from backend.app.api.recommendation import router as recommendation_router
 api_router.include_router(recommendation_router)
+api_router.include_router(news_router)
+api_router.include_router(scanner_router)

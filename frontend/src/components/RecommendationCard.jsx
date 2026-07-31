@@ -1,24 +1,37 @@
-export default function RecommendationCard({ recommendation }) {
+import { useEffect, useState } from "react";
+import { getRecommendation } from "../services/marketService";
 
-    let color = "#F59E0B";
+export default function RecommendationCard({ symbol }) {
 
-    if (recommendation === "BUY") color = "#22C55E";
+    const [recommendation, setRecommendation] = useState(null);
 
-    if (recommendation === "SELL") color = "#EF4444";
+    useEffect(() => {
+
+        async function load() {
+
+            const data = await getRecommendation(symbol);
+
+            setRecommendation(data);
+
+        }
+
+        load();
+
+    }, [symbol]);
+
+    if (!recommendation) {
+
+        return <div className="card">Loading...</div>;
+
+    }
 
     return (
 
-        <div
-            className="recommendation-card"
-            style={{
-                background: color,
-                transition: ".3s",
-            }}
-        >
+        <div className="card">
 
             <h2>Recommendation</h2>
 
-            <h1>{recommendation}</h1>
+            <h1>{recommendation.signal}</h1>
 
         </div>
 
