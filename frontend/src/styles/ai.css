@@ -1,0 +1,37 @@
+.ai-panel{
+
+display:flex;
+
+flex-direction:column;
+
+gap:18px;
+
+margin-top:25px;
+
+}
+
+.ai-row{
+
+display:flex;
+
+justify-content:space-between;
+
+padding:10px 0;
+
+border-bottom:1px solid #334155;
+
+}
+
+.ai-row span{
+
+color:#94a3b8;
+
+}
+
+.ai-row strong{
+
+color:white;
+
+font-size:18px;
+
+}

@@ -1,6 +1,5 @@
 from fastapi import APIRouter
-
-from backend.app.analysis.engine import AnalysisEngine
+from app.analysis.engine import AnalysisEngine
 
 router = APIRouter(
     prefix="/analysis",
@@ -10,7 +9,9 @@ router = APIRouter(
 engine = AnalysisEngine()
 
 
-@router.get("/{symbol}")
-def analyze(symbol: str):
-
+@router.get(
+    "/{symbol}",
+    operation_id="market_analysis",
+)
+def analyze_market(symbol: str):
     return engine.analyze(symbol)

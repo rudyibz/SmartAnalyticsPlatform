@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from backend.app.models.portfolio import Portfolio
+from app.models.portfolio import Portfolio
 
 
 def create_position(

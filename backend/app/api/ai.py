@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from backend.app.services.analysis_service import analyze_market
-from backend.app.ai.openai_service import ask_ai
+from app.services.analysis_service import analyze_market
+from app.ai.openai_service import ask_ai
 
 router = APIRouter(
     prefix="/ai",

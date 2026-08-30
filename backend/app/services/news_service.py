@@ -1,26 +1,73 @@
 import yfinance as yf
+from datetime import datetime, timezone
 
 
 def get_news(symbol: str):
 
+    symbol = symbol.upper().strip()
+
     ticker = yf.Ticker(symbol)
 
-    news = ticker.news
+    try:
+        news = ticker.news or []
+    except Exception:
+        return []
 
     result = []
 
     for item in news[:10]:
 
-        result.append({
+        # yfinance puede devolver los datos dentro de "content"
+        content = item.get("content", item)
 
-            "title": item.get("title"),
+        title = content.get("title")
 
-            "publisher": item.get("publisher"),
+        publisher = content.get(
+            "provider",
+            {}
+        )
 
-            "link": item.get("link"),
+        if isinstance(publisher, dict):
+            publisher = (
+                publisher.get("displayName")
+                or publisher.get("name")
+            )
 
-            "published": item.get("providerPublishTime"),
+        link = content.get("canonicalUrl")
 
-        })
+        if isinstance(link, dict):
+            link = link.get("url")
+
+        if not link:
+            link = content.get("clickThroughUrl")
+
+            if isinstance(link, dict):
+                link = link.get("url")
+
+        published = content.get(
+            "pubDate"
+        )
+
+        if published:
+            try:
+                dt = datetime.fromisoformat(
+                    published.replace("Z", "+00:00")
+                )
+
+                published = dt.astimezone(
+                    timezone.utc
+                ).isoformat()
+
+            except Exception:
+                pass
+
+        result.append(
+            {
+                "title": title,
+                "publisher": publisher,
+                "link": link,
+                "published": published,
+            }
+        )
 
     return result

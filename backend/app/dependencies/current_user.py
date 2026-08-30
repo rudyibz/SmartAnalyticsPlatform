@@ -7,16 +7,16 @@ from jose import jwt
 
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import (
+from app.core.config import (
     SECRET_KEY,
     ALGORITHM,
 )
 
-from backend.app.core.oauth2 import oauth2_scheme
+from app.core.oauth2 import oauth2_scheme
 
-from backend.app.db.session import get_db
+from app.db.session import get_db
 
-from backend.app.models.user import User
+from app.models.user import User
 
 
 def get_current_user(

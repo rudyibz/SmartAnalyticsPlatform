@@ -1,64 +1,383 @@
-import TopBar from "../components/TopBar";
-import TradingChart from "../components/TradingChart";
-import AIAnalysisCard from "../components/AIAnalysisCard";
-import ScoreGauge from "../components/ScoreGauge";
-import RecommendationCard from "../components/RecommendationCard";
-import PortfolioTable from "../components/PortfolioTable";
-import WatchlistTable from "../components/WatchlistTable";
-import MarketScanner from "../components/MarketScanner";
-import IndicatorPanel from "../components/IndicatorPanel";
-import AlertsPanel from "../components/AlertsPanel";
-import NewsPanel from "../components/NewsPanel";
+import { useEffect, useMemo, useState } from "react";
 
-import { useState } from "react";
+import TopBar from "../components/layout/TopBar";
+import Watchlist from "../components/watchlist/Watchlist";
+import DashboardHeader from "../components/dashboard/DashboardHeader";
+import DashboardGrid from "../components/dashboard/DashboardGrid";
+import KPICards from "../components/dashboard/KPICards";
+import MarketOverview from "../components/dashboard/MarketOverview";
+import TradingChart from "../components/charts/TradingChart";
+import AIAnalysis from "../components/ai/AIAnalysis";
+import PortfolioDashboard from "../components/portfolio/PortfolioDashboard";
+
+import { useMarketContext } from "../context/MarketContext";
+
+import {
+    getPrice,
+    getHistory,
+    getIndicators,
+    analyze,
+    getScore,
+    getRecommendation,
+    getPortfolio,
+    getWatchlist,
+    getScanner,
+} from "../services/api";
 
 export default function Dashboard() {
+    const {
+        symbol,
+        marketData,
+        wsConnected,
+    } = useMarketContext();
 
-    const [symbol, setSymbol] = useState("AAPL");
+    const currentSymbol = symbol || "AAPL";
 
-    return (
+    const [price, setPrice] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [indicators, setIndicators] = useState(null);
+    const [marketAnalysis, setMarketAnalysis] = useState(null);
+    const [score, setScore] = useState(null);
+    const [recommendation, setRecommendation] = useState(null);
+    const [portfolio, setPortfolio] = useState([]);
+    const [watchlist, setWatchlist] = useState([]);
+    const [scanner, setScanner] = useState([]);
 
-        <div className="dashboard">
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-            <TopBar
-                symbol={symbol}
-                setSymbol={setSymbol}
-            />
+    // =========================================================
+    // CARGAR DATOS DEL DASHBOARD
+    // =========================================================
 
-            <div className="dashboard-content">
+    useEffect(() => {
+        let cancelled = false;
 
-                <div className="left-column">
+        async function loadDashboard() {
+            setLoading(true);
+            setError("");
 
-                    <TradingChart symbol={symbol} />
+            try {
+                const results = await Promise.allSettled([
+                    getPrice(currentSymbol),
+                    getHistory(currentSymbol),
+                    getIndicators(currentSymbol),
+                    analyze(currentSymbol),
+                    getScore(currentSymbol),
+                    getRecommendation(currentSymbol),
+                    getPortfolio(),
+                    getWatchlist(),
+                    getScanner(),
+                ]);
 
-                    <PortfolioTable />
+                if (cancelled) {
+                    return;
+                }
 
-                    <WatchlistTable />
+                const [
+                    priceResult,
+                    historyResult,
+                    indicatorsResult,
+                    analysisResult,
+                    scoreResult,
+                    recommendationResult,
+                    portfolioResult,
+                    watchlistResult,
+                    scannerResult,
+                ] = results;
 
-                    <MarketScanner />
+                if (
+                    priceResult.status === "fulfilled"
+                ) {
+                    setPrice(priceResult.value);
+                }
 
-                </div>
+                if (
+                    historyResult.status === "fulfilled"
+                ) {
+                    setHistory(
+                        Array.isArray(
+                            historyResult.value
+                        )
+                            ? historyResult.value
+                            : []
+                    );
+                }
 
-                <div className="right-column">
+                if (
+                    indicatorsResult.status === "fulfilled"
+                ) {
+                    setIndicators(
+                        indicatorsResult.value
+                    );
+                }
 
-                    <AIAnalysisCard symbol={symbol} />
+                if (
+                    analysisResult.status === "fulfilled"
+                ) {
+                    setMarketAnalysis(
+                        analysisResult.value
+                    );
+                }
 
-                    <ScoreGauge symbol={symbol} />
+                if (
+                    scoreResult.status === "fulfilled"
+                ) {
+                    setScore(
+                        scoreResult.value
+                    );
+                }
 
-                    <RecommendationCard symbol={symbol} />
+                if (
+                    recommendationResult.status === "fulfilled"
+                ) {
+                    setRecommendation(
+                        recommendationResult.value
+                    );
+                }
 
-                    <IndicatorPanel symbol={symbol} />
+                if (
+                    portfolioResult.status === "fulfilled"
+                ) {
+                    setPortfolio(
+                        Array.isArray(
+                            portfolioResult.value
+                        )
+                            ? portfolioResult.value
+                            : []
+                    );
+                }
 
-                    <AlertsPanel symbol={symbol} />
+                if (
+                    watchlistResult.status === "fulfilled"
+                ) {
+                    setWatchlist(
+                        Array.isArray(
+                            watchlistResult.value
+                        )
+                            ? watchlistResult.value
+                            : []
+                    );
+                }
 
-                    <NewsPanel symbol={symbol} />
+                if (
+                    scannerResult.status === "fulfilled"
+                ) {
+                    setScanner(
+                        Array.isArray(
+                            scannerResult.value
+                        )
+                            ? scannerResult.value
+                            : []
+                    );
+                }
 
-                </div>
+                const failed = results.filter(
+                    (result) =>
+                        result.status === "rejected"
+                );
 
-            </div>
+                if (failed.length > 0) {
+                    console.warn(
+                        "Algunas APIs del Dashboard fallaron:",
+                        failed
+                    );
+                }
+            } catch (err) {
+                console.error(
+                    "Error cargando Dashboard:",
+                    err
+                );
 
-        </div>
+                if (!cancelled) {
+                    setError(
+                        err.message ||
+                            "No se pudo cargar el Dashboard."
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
 
+        loadDashboard();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentSymbol]);
+
+    // =========================================================
+    // WEBSOCKET → PRECIO EN TIEMPO REAL
+    // =========================================================
+
+    useEffect(() => {
+        if (!marketData) {
+            return;
+        }
+
+        if (
+            marketData.symbol &&
+            marketData.symbol !== currentSymbol
+        ) {
+            return;
+        }
+
+        if (
+            marketData.price === null ||
+            marketData.price === undefined
+        ) {
+            return;
+        }
+
+        setPrice((previous) => {
+            const previousData = previous || {};
+
+            return {
+                ...previousData,
+
+                symbol:
+                    marketData.symbol ||
+                    currentSymbol,
+
+                price:
+                    marketData.price,
+
+                currency:
+                    marketData.currency ||
+                    previousData.currency ||
+                    "USD",
+            };
+        });
+    }, [
+        marketData,
+        currentSymbol,
+    ]);
+
+    // =========================================================
+    // DATOS DEL DASHBOARD
+    // =========================================================
+
+    const dashboardData = useMemo(
+        () => ({
+            symbol: currentSymbol,
+            price,
+            history,
+            indicators,
+            marketAnalysis,
+            score,
+            recommendation,
+            portfolio,
+            watchlist,
+            scanner,
+            marketData,
+            wsConnected,
+        }),
+        [
+            currentSymbol,
+            price,
+            history,
+            indicators,
+            marketAnalysis,
+            score,
+            recommendation,
+            portfolio,
+            watchlist,
+            scanner,
+            marketData,
+            wsConnected,
+        ]
     );
 
+    // =========================================================
+    // RENDER
+    // =========================================================
+
+    return (
+        <div className="dashboard">
+
+            <aside className="dashboard-left">
+                <Watchlist
+                    data={watchlist}
+                />
+            </aside>
+
+            <main className="dashboard-main">
+
+                <TopBar />
+
+                <DashboardHeader
+                    symbol={currentSymbol}
+                    price={price}
+                    loading={loading}
+                />
+
+                {/* WEBSOCKET STATUS */}
+
+                <div
+                    className={
+                        wsConnected
+                            ? "market-connection connected"
+                            : "market-connection disconnected"
+                    }
+                >
+                    <span>●</span>
+
+                    <span>
+                        {wsConnected
+                            ? `Market data en tiempo real · ${currentSymbol}`
+                            : "Market data desconectado"}
+                    </span>
+                </div>
+
+                {/* ERROR */}
+
+                {error && (
+                    <div className="admin-error">
+                        {error}
+                    </div>
+                )}
+
+                {/* DASHBOARD */}
+
+                <DashboardGrid>
+
+                    <KPICards
+                        data={dashboardData}
+                        loading={loading}
+                    />
+
+                    <MarketOverview
+                        data={dashboardData}
+                        loading={loading}
+                    />
+
+                    <TradingChart
+                        symbol={currentSymbol}
+                        history={history}
+                        marketData={marketData}
+                        loading={loading}
+                    />
+
+                    <AIAnalysis
+                        symbol={currentSymbol}
+                        analysis={marketAnalysis}
+                        score={score}
+                        recommendation={recommendation}
+                        loading={loading}
+                    />
+
+                    <PortfolioDashboard
+                        portfolio={portfolio}
+                        loading={loading}
+                    />
+
+                </DashboardGrid>
+
+            </main>
+
+        </div>
+    );
 }

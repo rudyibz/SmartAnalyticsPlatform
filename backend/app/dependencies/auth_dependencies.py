@@ -8,14 +8,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import (
+from app.core.config import (
     SECRET_KEY,
     ALGORITHM,
 )
 
-from backend.app.db.session import get_db
+from app.db.session import get_db
 
-from backend.app.crud.user_crud import (
+from app.crud.user_crud import (
     get_user_by_id,
 )
 
@@ -39,7 +39,6 @@ def get_current_user(
     )
 
     try:
-
         payload = jwt.decode(
             token,
             SECRET_KEY,
@@ -51,16 +50,25 @@ def get_current_user(
         if user_id is None:
             raise credentials_exception
 
-    except JWTError:
+        user_id = int(user_id)
+
+    except (JWTError, ValueError, TypeError):
         raise credentials_exception
 
     user = get_user_by_id(
         db,
-        int(user_id),
+        user_id,
     )
 
     if user is None:
         raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario inactivo",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return user
 
@@ -73,8 +81,13 @@ def require_role(role: str):
     def role_checker(
         current_user=Depends(get_current_user),
     ):
+        user_role = (
+            current_user.role.value
+            if hasattr(current_user.role, "value")
+            else str(current_user.role)
+        )
 
-        if current_user.role.value != role:
+        if user_role != role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permisos para acceder.",

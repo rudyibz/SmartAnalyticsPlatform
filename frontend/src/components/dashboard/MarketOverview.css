@@ -1,0 +1,53 @@
+.market-overview{
+
+    background:#111827;
+
+    border-radius:16px;
+
+    padding:20px;
+
+    color:white;
+
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+
+}
+
+.market-overview h2{
+
+    margin-bottom:20px;
+
+}
+
+.market-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:12px 0;
+
+    border-bottom:1px solid #1f2937;
+
+}
+
+.market-row:last-child{
+
+    border-bottom:none;
+
+}
+
+.positive{
+
+    color:#22c55e;
+
+    font-weight:bold;
+
+}
+
+.negative{
+
+    color:#ef4444;
+
+    font-weight:bold;
+
+}

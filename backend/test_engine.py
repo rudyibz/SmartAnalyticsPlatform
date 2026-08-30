@@ -1,4 +1,4 @@
-from backend.app.indicators.engine import IndicatorEngine
+from app.indicators.engine import IndicatorEngine
 
 engine = IndicatorEngine()
 

@@ -1,14 +1,14 @@
 import yfinance as yf
 
-from backend.app.indicators import adx
-from backend.app.indicators import atr
-from backend.app.indicators import bollinger
-from backend.app.indicators import ema
-from backend.app.indicators import macd
-from backend.app.indicators import rsi
-from backend.app.indicators import sma
-from backend.app.indicators import stochastic
-from backend.app.indicators import vwap
+from app.indicators import adx
+from app.indicators import atr
+from app.indicators import bollinger
+from app.indicators import ema
+from app.indicators import macd
+from app.indicators import rsi
+from app.indicators import sma
+from app.indicators import stochastic
+from app.indicators import vwap
 
 
 class IndicatorEngine:

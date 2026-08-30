@@ -1,0 +1,297 @@
+.scanner-page{
+    width:100%;
+}
+
+.scanner-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+    margin-bottom:20px;
+}
+
+.scanner-header h1{
+    margin:0 0 6px;
+}
+
+.scanner-header p{
+    margin:0;
+    color:#94a3b8;
+}
+
+.scanner-header button{
+    min-width:120px;
+}
+
+.scanner-search{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    max-width:420px;
+    box-sizing:border-box;
+    margin-bottom:20px;
+    padding:12px 15px;
+    background:#111827;
+    border:1px solid #1e293b;
+    border-radius:12px;
+}
+
+.scanner-search span{
+    font-size:16px;
+}
+
+.scanner-search input{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:white;
+    font-size:15px;
+}
+
+.scanner-search input::placeholder{
+    color:#64748b;
+}
+
+.scanner-error{
+    margin-bottom:20px;
+    padding:14px 16px;
+    border-radius:10px;
+    background:#450a0a;
+    border:1px solid #991b1b;
+    color:#fca5a5;
+}
+
+.scanner-loading{
+    padding:50px 20px;
+    text-align:center;
+    color:#94a3b8;
+}
+
+.scanner-spinner{
+    width:32px;
+    height:32px;
+    margin:0 auto 14px;
+    border:3px solid #334155;
+    border-top-color:#60a5fa;
+    border-radius:50%;
+    animation:scanner-spin .8s linear infinite;
+}
+
+@keyframes scanner-spin{
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+.scanner-empty{
+    padding:50px 20px;
+    text-align:center;
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:12px;
+    color:#94a3b8;
+}
+
+.scanner-empty > div{
+    font-size:32px;
+    margin-bottom:10px;
+}
+
+.scanner-empty h3{
+    margin:0 0 6px;
+    color:white;
+}
+
+.scanner-empty p{
+    margin:0;
+}
+
+.scanner-table-wrapper{
+    width:100%;
+    overflow-x:auto;
+    border-radius:12px;
+    border:1px solid #1e293b;
+}
+
+.scanner-table{
+    width:100%;
+    min-width:1050px;
+    border-collapse:collapse;
+    background:#111827;
+}
+
+.scanner-table thead{
+    background:#1f2937;
+}
+
+.scanner-table th{
+    padding:15px 16px;
+    text-align:left;
+    color:#94a3b8;
+    font-size:13px;
+    font-weight:600;
+    white-space:nowrap;
+    cursor:pointer;
+    user-select:none;
+}
+
+.scanner-table th:first-child{
+    cursor:default;
+}
+
+.scanner-table td{
+    padding:16px;
+    border-top:1px solid #1f2937;
+    color:white;
+    white-space:nowrap;
+}
+
+.scanner-table tbody tr{
+    transition:.2s;
+}
+
+.scanner-table tbody tr:hover{
+    background:#172033;
+}
+
+.scanner-symbol{
+    font-size:15px;
+    letter-spacing:.3px;
+}
+
+.scanner-score{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:130px;
+}
+
+.scanner-score > span{
+    width:28px;
+    font-weight:700;
+}
+
+.score-bar{
+    width:80px;
+    height:7px;
+    overflow:hidden;
+    background:#334155;
+    border-radius:99px;
+}
+
+.score-fill{
+    height:100%;
+    border-radius:99px;
+}
+
+.score-high{
+    color:#22c55e;
+}
+
+.score-medium{
+    color:#facc15;
+}
+
+.score-low{
+    color:#ef4444;
+}
+
+.score-fill.score-high{
+    background:#22c55e;
+}
+
+.score-fill.score-medium{
+    background:#facc15;
+}
+
+.score-fill.score-low{
+    background:#ef4444;
+}
+
+.signal-badge,
+.trend-badge,
+.risk-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.signal-badge.buy{
+    color:#86efac;
+    background:#052e16;
+    border:1px solid #166534;
+}
+
+.signal-badge.sell{
+    color:#fca5a5;
+    background:#450a0a;
+    border:1px solid #991b1b;
+}
+
+.signal-badge.hold{
+    color:#fde68a;
+    background:#422006;
+    border:1px solid #92400e;
+}
+
+.trend-badge.bullish{
+    color:#86efac;
+    background:#052e16;
+}
+
+.trend-badge.bearish{
+    color:#fca5a5;
+    background:#450a0a;
+}
+
+.trend-badge.neutral{
+    color:#cbd5e1;
+    background:#1e293b;
+}
+
+.risk-badge.risk-high{
+    color:#fca5a5;
+    background:#450a0a;
+}
+
+.risk-badge.risk-medium{
+    color:#fde68a;
+    background:#422006;
+}
+
+.risk-badge.risk-low{
+    color:#86efac;
+    background:#052e16;
+}
+
+.recommendation{
+    font-weight:600;
+    color:#e2e8f0;
+}
+
+@media (max-width:768px){
+
+    .scanner-header{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .scanner-header button{
+        width:100%;
+    }
+
+    .scanner-search{
+        max-width:none;
+    }
+
+    .scanner-table{
+        min-width:1000px;
+    }
+
+}

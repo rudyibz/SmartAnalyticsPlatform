@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from backend.app.models.alert import Alert
+from app.models.alert import Alert
 
 
 def create_alert(
@@ -13,10 +13,13 @@ def create_alert(
 ):
     alert = Alert(
         user_id=user_id,
-        symbol=symbol.upper(),
-        indicator=indicator.upper(),
-        operator=operator,
-        target_value=target_value,
+        symbol=str(symbol).strip().upper(),
+        indicator=str(indicator).strip().upper(),
+        operator=str(operator).strip(),
+        target_value=float(target_value),
+        active=True,
+        triggered=False,
+        last_triggered_at=None,
     )
 
     db.add(alert)
@@ -32,7 +35,12 @@ def get_alerts(
 ):
     return (
         db.query(Alert)
-        .filter(Alert.user_id == user_id)
+        .filter(
+            Alert.user_id == user_id
+        )
+        .order_by(
+            Alert.id.desc()
+        )
         .all()
     )
 
@@ -57,7 +65,11 @@ def update_alert(
     alert: Alert,
     active: bool,
 ):
-    alert.active = active
+    alert.active = bool(active)
+
+    if not alert.active:
+        alert.triggered = False
+        alert.last_triggered_at = None
 
     db.commit()
     db.refresh(alert)
@@ -71,3 +83,5 @@ def delete_alert(
 ):
     db.delete(alert)
     db.commit()
+
+    return True

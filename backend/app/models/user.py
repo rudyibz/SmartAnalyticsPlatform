@@ -7,10 +7,10 @@ from sqlalchemy import String
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
-from backend.app.db.base import Base
+from app.db.base import Base
 from sqlalchemy import Enum
 
-from backend.app.models.roles import UserRole
+from app.models.roles import UserRole
 
 class User(Base):
     __tablename__ = "users"

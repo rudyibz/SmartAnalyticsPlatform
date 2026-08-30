@@ -1,4 +1,4 @@
-from backend.app.core.logger import logger
+from app.core.logger import logger
 
 logger.info("SmartAnalyticsPlatform iniciado correctamente")
 logger.success("Logger funcionando")

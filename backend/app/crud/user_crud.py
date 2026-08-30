@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from backend.app.models.user import User
+from app.models.user import User
 
 
 def get_user_by_id(

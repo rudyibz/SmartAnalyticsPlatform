@@ -1,4 +1,4 @@
-from backend.app.services.market_service import get_indicators
+from app.services.market_service import get_indicators
 
 
 def analyze_market(

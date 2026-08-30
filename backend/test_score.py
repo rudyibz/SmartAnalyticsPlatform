@@ -1,5 +1,5 @@
-from backend.app.indicators.engine import IndicatorEngine
-from backend.app.scoring.engine import ScoringEngine
+from app.indicators.engine import IndicatorEngine
+from app.scoring.engine import ScoringEngine
 
 indicator = IndicatorEngine()
 scoring = ScoringEngine()

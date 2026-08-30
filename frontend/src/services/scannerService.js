@@ -1,9 +1,8 @@
-const API = "http://127.0.0.1:8001/api/v1";
+import {
+    getScanner,
+} from "../api/api";
 
-export async function getScanner() {
 
-    const res = await fetch(`${API}/scanner`);
-
-    return await res.json();
-
-}
+export {
+    getScanner,
+};

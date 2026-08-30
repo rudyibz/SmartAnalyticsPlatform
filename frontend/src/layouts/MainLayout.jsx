@@ -1,25 +1,28 @@
-import Header from "../components/Header";
-import Sidebar from "../components/Sidebar";
-import Footer from "../components/Footer";
+import Sidebar from "../components/layout/Sidebar";
+import TopBar from "../components/layout/TopBar";
 
 export default function MainLayout({ children }) {
+
     return (
+
         <div className="app">
 
             <Sidebar />
 
             <div className="main">
 
-                <Header />
+                <TopBar />
 
-                <main className="content">
+                <div className="content">
+
                     {children}
-                </main>
 
-                <Footer />
+                </div>
 
             </div>
 
         </div>
+
     );
+
 }

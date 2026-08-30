@@ -1,22 +1,33 @@
-from fastapi import HTTPException
+# ============================================================
+# SmartAnalyticsPlatform
+# backend/app/services/alert_service.py
+# ============================================================
 
-from backend.app.crud.alert_crud import (
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.crud.alert_crud import (
     create_alert,
     delete_alert,
     get_alert,
     get_alerts,
     update_alert,
 )
+from app.schemas.alert_schema import AlertCreate, AlertUpdate
 
+
+# ============================================================
+# CREATE
+# ============================================================
 
 def create_alert_service(
-    db,
-    user,
-    data,
+    db: Session,
+    current_user,
+    data: AlertCreate,
 ):
     return create_alert(
         db=db,
-        user_id=user.id,
+        user_id=current_user.id,
         symbol=data.symbol,
         indicator=data.indicator,
         operator=data.operator,
@@ -24,32 +35,40 @@ def create_alert_service(
     )
 
 
+# ============================================================
+# LIST USER ALERTS
+# ============================================================
+
 def get_user_alerts(
-    db,
-    user,
+    db: Session,
+    current_user,
 ):
     return get_alerts(
         db=db,
-        user_id=user.id,
+        user_id=current_user.id,
     )
 
 
+# ============================================================
+# UPDATE
+# ============================================================
+
 def update_alert_service(
-    db,
-    user,
-    alert_id,
-    data,
+    db: Session,
+    current_user,
+    alert_id: int,
+    data: AlertUpdate,
 ):
     alert = get_alert(
         db=db,
         alert_id=alert_id,
-        user_id=user.id,
+        user_id=current_user.id,
     )
 
-    if not alert:
+    if alert is None:
         raise HTTPException(
-            status_code=404,
-            detail="Alert not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alerta no encontrada.",
         )
 
     return update_alert(
@@ -59,21 +78,25 @@ def update_alert_service(
     )
 
 
+# ============================================================
+# DELETE
+# ============================================================
+
 def delete_alert_service(
-    db,
-    user,
-    alert_id,
+    db: Session,
+    current_user,
+    alert_id: int,
 ):
     alert = get_alert(
         db=db,
         alert_id=alert_id,
-        user_id=user.id,
+        user_id=current_user.id,
     )
 
-    if not alert:
+    if alert is None:
         raise HTTPException(
-            status_code=404,
-            detail="Alert not found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alerta no encontrada.",
         )
 
     delete_alert(
@@ -82,5 +105,5 @@ def delete_alert_service(
     )
 
     return {
-        "message": "Alert deleted"
+        "message": "Alerta eliminada correctamente.",
     }

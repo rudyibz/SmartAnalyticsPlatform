@@ -1,0 +1,95 @@
+.kpi-container{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+
+    gap:20px;
+
+    margin-bottom:30px;
+
+}
+
+.kpi-card{
+
+    background:#111827;
+
+    border:1px solid #1f2937;
+
+    border-radius:16px;
+
+    padding:24px;
+
+    transition:.25s;
+
+    cursor:pointer;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.25);
+
+}
+
+.kpi-card:hover{
+
+    transform:translateY(-5px);
+
+    border-color:#2563EB;
+
+    box-shadow:0 15px 40px rgba(37,99,235,.25);
+
+}
+
+.kpi-card span{
+
+    color:#94A3B8;
+
+    font-size:13px;
+
+    letter-spacing:1px;
+
+    display:block;
+
+    margin-bottom:10px;
+
+    text-transform:uppercase;
+
+}
+
+.kpi-card h2{
+
+    color:white;
+
+    font-size:34px;
+
+    font-weight:700;
+
+    margin:0;
+
+}
+
+.kpi-card small{
+
+    display:block;
+
+    margin-top:10px;
+
+    color:#64748B;
+
+}
+
+.buy{
+
+    color:#22C55E;
+
+}
+
+.sell{
+
+    color:#EF4444;
+
+}
+
+.hold{
+
+    color:#FACC15;
+
+}

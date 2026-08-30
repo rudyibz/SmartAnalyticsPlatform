@@ -1,5 +1,5 @@
-from backend.app.ai.prompts import build_prompt
-from backend.app.ai.providers.factory import ProviderFactory
+from app.ai.prompts import build_prompt
+from app.ai.providers.factory import ProviderFactory
 
 
 class AIEngine:

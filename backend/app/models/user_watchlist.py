@@ -1,20 +1,33 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import String
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
-from backend.app.db.base import Base
+from app.db.base import Base
 
 
 class UserWatchlist(Base):
 
     __tablename__ = "user_watchlist"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "symbol",
+            name="uq_user_watchlist_user_symbol",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -25,10 +38,11 @@ class UserWatchlist(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
+        index=True,
     )
 
     symbol: Mapped[str] = mapped_column(
-        String(20),
+        String(30),
         nullable=False,
         index=True,
     )
@@ -36,6 +50,9 @@ class UserWatchlist(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
+        nullable=False,
     )
 
-    user = relationship("User")
+    user = relationship(
+        "User",
+    )

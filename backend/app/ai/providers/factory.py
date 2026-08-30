@@ -1,5 +1,5 @@
-from backend.app.ai.providers.openai_provider import OpenAIProvider
-from backend.app.ai.providers.ollama_provider import OllamaProvider
+from app.ai.providers.openai_provider import OpenAIProvider
+from app.ai.providers.ollama_provider import OllamaProvider
 
 
 class ProviderFactory:

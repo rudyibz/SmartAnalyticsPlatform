@@ -1,24 +1,22 @@
-from backend.app.indicators.engine import IndicatorEngine
-from backend.app.ai.analysis import AIAnalysis
-from backend.app.ai.score_engine import AIScoreEngine
+from app.analysis.engine import AnalysisEngine
+
 
 WATCHLIST = [
     "AAPL",
     "MSFT",
     "NVDA",
+    "META",
     "AMZN",
     "GOOGL",
-    "META",
     "TSLA",
-    "NFLX",
     "AMD",
+    "NFLX",
     "BTC-USD",
     "ETH-USD",
 ]
 
-engine = IndicatorEngine()
-analysis_engine = AIAnalysis()
-score_engine = AIScoreEngine()
+
+analysis_engine = AnalysisEngine()
 
 
 def market_scan():
@@ -29,40 +27,50 @@ def market_scan():
 
         try:
 
-            df = engine.calculate(symbol)
+            analysis = analysis_engine.analyze(symbol)
 
-            analysis = analysis_engine.analyze(df)
+            score = analysis["score"]
 
-            score = score_engine.calculate(analysis)
+            trend = (
+                "Bullish"
+                if score >= 70
+                else "Bearish"
+                if score <= 30
+                else "Neutral"
+            )
 
-            last = df.iloc[-1]
+            results.append(
+                {
+                    "symbol": symbol,
 
-            results.append({
+                    "price": round(
+                        float(analysis["price"]),
+                        2,
+                    ),
 
-                "symbol": symbol,
+                    "score": score,
 
-                "price": round(float(last["Close"]), 2),
+                    "signal": analysis["signal"],
 
-                "score": score["score"],
+                    "trend": trend,
 
-                "signal": score["signal"],
+                    "risk": analysis["risk"],
 
-                "trend": (
-                    "Bullish"
-                    if score["score"] >= 70
-                    else "Bearish"
-                    if score["score"] <= 30
-                    else "Neutral"
-                ),
+                    "recommendation": (
+                        analysis["recommendation"]
+                    ),
+                }
+            )
 
-            })
+        except Exception as exc:
 
-        except Exception as e:
-
-            print(symbol, e)
+            print(
+                f"[SCANNER] Error loading "
+                f"{symbol}: {exc}"
+            )
 
     results.sort(
-        key=lambda x: x["score"],
+        key=lambda item: item["score"],
         reverse=True,
     )
 

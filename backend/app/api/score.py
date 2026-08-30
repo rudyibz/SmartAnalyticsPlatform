@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-from backend.app.indicators.engine import IndicatorEngine
-from backend.app.ai.analysis import AIAnalysis
-from backend.app.ai.score_engine import AIScoreEngine
-from backend.app.ai.recommendation import AIRecommendation
+from app.indicators.engine import IndicatorEngine
+from app.ai.analysis import AIAnalysis
+from app.ai.score_engine import AIScoreEngine
+from app.ai.recommendation import AIRecommendation
 
 router = APIRouter(
     prefix="/score",

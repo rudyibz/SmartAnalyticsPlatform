@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 
-from backend.app.crud.portfolio_crud import (
+from app.analytics.portfolio_engine import PortfolioEngine
+
+from app.crud.portfolio_crud import (
     create_position,
     delete_position,
     get_portfolio,
@@ -14,10 +16,30 @@ def create_portfolio_position(
     user,
     data,
 ):
+    symbol = data.symbol.strip().upper()
+
+    if not symbol:
+        raise HTTPException(
+            status_code=400,
+            detail="Symbol is required",
+        )
+
+    if data.quantity <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Quantity must be greater than zero",
+        )
+
+    if data.buy_price <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Buy price must be greater than zero",
+        )
+
     return create_position(
         db=db,
         user_id=user.id,
-        symbol=data.symbol,
+        symbol=symbol,
         quantity=data.quantity,
         buy_price=data.buy_price,
     )
@@ -27,10 +49,16 @@ def get_user_portfolio(
     db,
     user,
 ):
-    return get_portfolio(
+    portfolio = get_portfolio(
         db=db,
         user_id=user.id,
     )
+
+    engine = PortfolioEngine(
+        portfolio
+    )
+
+    return engine.calculate()
 
 
 def update_portfolio_position(
@@ -49,6 +77,18 @@ def update_portfolio_position(
         raise HTTPException(
             status_code=404,
             detail="Position not found",
+        )
+
+    if data.quantity <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Quantity must be greater than zero",
+        )
+
+    if data.buy_price <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Buy price must be greater than zero",
         )
 
     return update_position(
@@ -82,5 +122,6 @@ def delete_portfolio_position(
     )
 
     return {
-        "message": "Position deleted"
+        "message": "Position deleted",
+        "position_id": position_id,
     }

@@ -8,6 +8,6 @@ def calculate(df, window):
         window=window,
     )
 
-    df[f"SMA{window}"] = indicator.sma_indicator()
+    df[f"SMA_{window}"] = indicator.sma_indicator()
 
     return df

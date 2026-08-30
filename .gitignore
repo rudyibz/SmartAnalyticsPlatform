@@ -57,3 +57,6 @@ logs/
 # ==================================
 .DS_Store
 Thumbs.db
+# Backup files
+*.backup
+*.bak

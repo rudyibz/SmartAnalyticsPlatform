@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from backend.app.core.config import APP_NAME
-from backend.app.core.config import VERSION
+from app.core.config import APP_NAME
+from app.core.config import VERSION
 
 router = APIRouter()
 

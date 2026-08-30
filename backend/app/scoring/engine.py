@@ -1,5 +1,5 @@
-from backend.app.scoring.weights import WEIGHTS
-from backend.app.scoring.signals import buy_sell
+from app.scoring.weights import WEIGHTS
+from app.scoring.signals import buy_sell
 
 
 class ScoringEngine:

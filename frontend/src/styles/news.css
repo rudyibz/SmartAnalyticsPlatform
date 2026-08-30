@@ -1,0 +1,255 @@
+/* ============================================================
+   NEWS
+   ============================================================ */
+
+.news-page {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+
+.news-header h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+
+.news-header p {
+    margin: 0;
+    color: #94a3b8;
+}
+
+
+.news-header button {
+    min-width: 120px;
+}
+
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+
+.news-error {
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    border-radius: 10px;
+
+    background: #450a0a;
+    border: 1px solid #991b1b;
+
+    color: #fca5a5;
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.news-loading {
+    padding: 40px;
+    text-align: center;
+
+    border-radius: 12px;
+
+    background: #0f172a;
+    border: 1px solid #1e293b;
+
+    color: #94a3b8;
+}
+
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.news-empty {
+    padding: 50px 30px;
+    text-align: center;
+
+    border-radius: 12px;
+
+    background: #0f172a;
+    border: 1px solid #1e293b;
+}
+
+
+.news-empty h2 {
+    margin-bottom: 8px;
+}
+
+
+.news-empty p {
+    margin: 0;
+    color: #94a3b8;
+}
+
+
+/* ============================================================
+   LIST
+   ============================================================ */
+
+.news-list {
+    display: grid;
+    gap: 16px;
+}
+
+
+/* ============================================================
+   CARD
+   ============================================================ */
+
+.news-card {
+    border-radius: 14px;
+
+    background: #0f172a;
+    border: 1px solid #1e293b;
+
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.news-card:hover {
+    transform: translateY(-2px);
+
+    border-color: #334155;
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+
+.news-card-content {
+    padding: 20px;
+}
+
+
+/* ============================================================
+   META
+   ============================================================ */
+
+.news-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 15px;
+
+    margin-bottom: 10px;
+
+    color: #64748b;
+
+    font-size: 13px;
+}
+
+
+.news-meta span {
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+
+.news-meta time {
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   TITLE
+   ============================================================ */
+
+.news-card h2 {
+    margin: 0 0 12px;
+
+    font-size: 20px;
+    line-height: 1.4;
+
+    color: #f8fafc;
+}
+
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+
+.news-card p {
+    margin: 0 0 16px;
+
+    color: #cbd5e1;
+
+    line-height: 1.6;
+}
+
+
+/* ============================================================
+   LINK
+   ============================================================ */
+
+.news-card a {
+    display: inline-flex;
+    align-items: center;
+
+    color: #60a5fa;
+
+    font-weight: 600;
+
+    text-decoration: none;
+}
+
+
+.news-card a:hover {
+    text-decoration: underline;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+
+    .news-page {
+        padding: 16px;
+    }
+
+
+    .news-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+
+    .news-header button {
+        width: 100%;
+    }
+
+
+    .news-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+
+    .news-card h2 {
+        font-size: 18px;
+    }
+
+}

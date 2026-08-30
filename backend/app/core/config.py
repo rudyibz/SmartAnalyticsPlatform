@@ -1,18 +1,15 @@
 """
 SmartAnalyticsPlatform
 core/config.py
-
-Configuración central del proyecto.
-Carga variables de entorno y define rutas globales.
 """
 
 from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-# ============================================
-# RUTAS DEL PROYECTO
-# ============================================
+# =====================================================
+# RUTAS
+# =====================================================
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
@@ -29,7 +26,6 @@ BACKUPS_DIR = DATA_DIR / "backups"
 LOGS_DIR = BASE_DIR / "logs"
 DOCS_DIR = BASE_DIR / "docs"
 
-# Crear directorios automáticamente
 for directory in (
     DATA_DIR,
     RAW_DATA_DIR,
@@ -42,9 +38,9 @@ for directory in (
 ):
     directory.mkdir(parents=True, exist_ok=True)
 
-# ============================================
+# =====================================================
 # VARIABLES DE ENTORNO
-# ============================================
+# =====================================================
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -54,12 +50,29 @@ VERSION = os.getenv("VERSION", "1.0.0")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./data/smartanalytics.db"
-)
+# =====================================================
+# BASE DE DATOS
+# =====================================================
+
+DB_FILE = DATA_DIR / "smartanalytics.db"
+
+DATABASE_URL = f"sqlite:///{DB_FILE.as_posix()}"
+
+print("=" * 50)
+print("BASE_DIR      :", BASE_DIR)
+print("DATABASE FILE :", DB_FILE)
+print("DATABASE URL  :", DATABASE_URL)
+print("=" * 50)
+
+# =====================================================
+# OPENAI
+# =====================================================
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# =====================================================
+# JWT
+# =====================================================
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY",

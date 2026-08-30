@@ -1,6 +1,7 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app.models.user_watchlist import UserWatchlist
+from app.models.user_watchlist import UserWatchlist
 
 
 def create_symbol(
@@ -9,14 +10,49 @@ def create_symbol(
     symbol: str,
 ):
 
+    normalized = symbol.strip().upper()
+
+    existing = (
+        db.query(UserWatchlist)
+        .filter(
+            UserWatchlist.user_id == user_id,
+            UserWatchlist.symbol == normalized,
+        )
+        .first()
+    )
+
+    if existing:
+        return existing
+
     item = UserWatchlist(
         user_id=user_id,
-        symbol=symbol.upper(),
+        symbol=normalized,
     )
 
     db.add(item)
-    db.commit()
-    db.refresh(item)
+
+    try:
+
+        db.commit()
+        db.refresh(item)
+
+    except IntegrityError:
+
+        db.rollback()
+
+        existing = (
+            db.query(UserWatchlist)
+            .filter(
+                UserWatchlist.user_id == user_id,
+                UserWatchlist.symbol == normalized,
+            )
+            .first()
+        )
+
+        if existing:
+            return existing
+
+        raise
 
     return item
 
@@ -28,7 +64,12 @@ def get_watchlist(
 
     return (
         db.query(UserWatchlist)
-        .filter(UserWatchlist.user_id == user_id)
+        .filter(
+            UserWatchlist.user_id == user_id
+        )
+        .order_by(
+            UserWatchlist.created_at.desc()
+        )
         .all()
     )
 
@@ -39,11 +80,13 @@ def delete_symbol(
     symbol: str,
 ):
 
+    normalized = symbol.strip().upper()
+
     item = (
         db.query(UserWatchlist)
         .filter(
             UserWatchlist.user_id == user_id,
-            UserWatchlist.symbol == symbol.upper(),
+            UserWatchlist.symbol == normalized,
         )
         .first()
     )

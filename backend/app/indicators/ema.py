@@ -8,6 +8,6 @@ def calculate(df, window):
         window=window,
     )
 
-    df[f"EMA{window}"] = indicator.ema_indicator()
+    df[f"EMA_{window}"] = indicator.ema_indicator()
 
     return df

@@ -1,15 +1,15 @@
 from sqlalchemy.orm import Session
 
-from backend.app.core.exceptions import (
+from app.core.exceptions import (
     InvalidCredentialsError,
 )
 
-from backend.app.core.security import (
+from app.core.security import (
     verify_password,
     create_access_token,
 )
 
-from backend.app.crud.user_crud import (
+from app.crud.user_crud import (
     get_user_by_email,
 )
 

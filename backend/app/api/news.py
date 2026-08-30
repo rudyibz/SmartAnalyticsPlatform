@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.app.services.news_service import get_news
+from app.services.news_service import get_news
 
 router = APIRouter(
     prefix="/news",

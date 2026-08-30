@@ -10,7 +10,7 @@ import sys
 
 from loguru import logger
 
-from backend.app.core.config import LOG_FILE, LOG_LEVEL
+from app.core.config import LOG_FILE, LOG_LEVEL
 
 logger.remove()
 

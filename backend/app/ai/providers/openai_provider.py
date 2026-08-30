@@ -1,4 +1,4 @@
-from backend.app.ai.providers.base import AIProvider
+from app.ai.providers.base import AIProvider
 
 
 class OpenAIProvider(AIProvider):
