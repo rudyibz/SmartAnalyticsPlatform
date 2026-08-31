@@ -8,6 +8,7 @@ import {
     getAlerts,
     getAlertEvents,
     evaluateAlerts,
+    triggerAlert,
     createAlert,
     updateAlert,
     deleteAlert,
@@ -468,6 +469,7 @@ function formatMarketValue(value) {
     }, [symbol]);
 
 // =========================================================
+// =========================================================
 // REAL-TIME MARKET VALUE
 // =========================================================
 
@@ -498,12 +500,12 @@ useEffect(() => {
         price <= 0
     ) {
         console.warn(
-    "[ALERTS] INVALID MARKET PRICE:",
-    {
-        marketData,
-        price,
-    }
-);
+            "[ALERTS] INVALID MARKET PRICE:",
+            {
+                marketData,
+                price,
+            }
+        );
 
         return;
     }
@@ -513,12 +515,15 @@ useEffect(() => {
             .trim()
             .toUpperCase();
 
+    const supportedIndicators = [
+        "PRICE",
+        "RSI",
+        "MACD",
+        "EMA",
+    ];
 
-    setEvaluations((current) => {
-
-    const next = {
-        ...current,
-    };
+    const nextEvaluations = {};
+    const alertsToTrigger = [];
 
     alerts.forEach((alert) => {
 
@@ -540,18 +545,18 @@ useEffect(() => {
             Number(alert.target_value);
 
         console.log(
-    "[ALERTS] CHECK:",
-    {
-        id: alert.id,
-        alertSymbol,
-        currentSymbol,
-        indicator,
-        operator,
-        target,
-        price,
-        active: alert.active,
-    }
-);
+            "[ALERTS] CHECK:",
+            {
+                id: alert.id,
+                alertSymbol,
+                currentSymbol,
+                indicator,
+                operator,
+                target,
+                price,
+                active: alert.active,
+            }
+        );
 
         // ---------------------------------------------
         // ALERTA INACTIVA
@@ -563,26 +568,18 @@ useEffect(() => {
                 alert.id
             ] = false;
 
-            console.log(
-                "[ALERTS] SKIP INACTIVE:",
-                alert.id
-            );
-
             return;
         }
 
         // ---------------------------------------------
-        // INDICADORES SOPORTADOS
+        // INDICADOR NO SOPORTADO
         // ---------------------------------------------
 
-        const supportedIndicators = [
-            "PRICE",
-            "RSI",
-            "MACD",
-            "EMA",
-        ];
-
-        if (!supportedIndicators.includes(indicator)) {
+        if (
+            !supportedIndicators.includes(
+                indicator
+            )
+        ) {
 
             console.log(
                 "[ALERTS] SKIP INDICATOR:",
@@ -599,7 +596,9 @@ useEffect(() => {
         // SOLO MISMO SYMBOL
         // ---------------------------------------------
 
-        if (alertSymbol !== currentSymbol) {
+        if (
+            alertSymbol !== currentSymbol
+        ) {
 
             console.log(
                 "[ALERTS] SKIP SYMBOL:",
@@ -617,7 +616,9 @@ useEffect(() => {
         // TARGET
         // ---------------------------------------------
 
-        if (!Number.isFinite(target)) {
+        if (
+            !Number.isFinite(target)
+        ) {
 
             console.log(
                 "[ALERTS] SKIP TARGET:",
@@ -636,34 +637,38 @@ useEffect(() => {
 
         let currentValue = price;
 
-        if (indicator === "RSI") {
-
+        if (
+            indicator === "RSI"
+        ) {
             currentValue =
                 Number(
                     marketData?.rsi14
                 );
-
         }
 
-        if (indicator === "MACD") {
-
+        if (
+            indicator === "MACD"
+        ) {
             currentValue =
                 Number(
                     marketData?.macd
                 );
-
         }
 
-        if (indicator === "EMA") {
-
+        if (
+            indicator === "EMA"
+        ) {
             currentValue =
                 Number(
                     marketData?.ema20
                 );
-
         }
 
-        if (!Number.isFinite(currentValue)) {
+        if (
+            !Number.isFinite(
+                currentValue
+            )
+        ) {
 
             console.log(
                 "[ALERTS] SKIP CURRENT VALUE:",
@@ -721,7 +726,7 @@ useEffect(() => {
         }
 
         // ---------------------------------------------
-        // ESTADO ANTERIOR FRONTEND
+        // ESTADO ANTERIOR
         // ---------------------------------------------
 
         const previouslyTriggered =
@@ -748,9 +753,11 @@ useEffect(() => {
         // ---------------------------------------------
 
         const previous =
-            current?.[alert.id] || {};
+            evaluations?.[alert.id] || {};
 
-        next[alert.id] = {
+        nextEvaluations[
+            alert.id
+        ] = {
 
             ...previous,
 
@@ -760,8 +767,7 @@ useEffect(() => {
             symbol:
                 alertSymbol,
 
-            indicator:
-                indicator,
+            indicator,
 
             operator,
 
@@ -777,7 +783,9 @@ useEffect(() => {
                 true,
 
             active:
-                Boolean(alert.active),
+                Boolean(
+                    alert.active
+                ),
 
             event_created:
                 previous.event_created ||
@@ -789,7 +797,7 @@ useEffect(() => {
         };
 
         // ---------------------------------------------
-        // ALERTA NUEVA
+        // NUEVA ALERTA
         // ---------------------------------------------
 
         if (newlyTriggered) {
@@ -806,58 +814,14 @@ useEffect(() => {
                 }
             );
 
-            // SONIDO
-
-            playAlertSound();
-
-            // NOTIFICACIÓN VISUAL
-
-            setAlertNotification({
-                id:
-                    alert.id,
-
-                symbol:
-                    alertSymbol,
-
-                operator:
-                    operator,
-
-                target:
-                    target,
-
-                price:
-                    currentValue,
+            alertsToTrigger.push({
+                alert,
+                alertSymbol,
+                indicator,
+                operator,
+                target,
+                currentValue,
             });
-
-            // MENSAJE
-
-            setMessage(
-                `🚨 Alerta ${alertSymbol} ${indicator} ${operator} ${target} disparada.`
-            );
-
-            // AUTOCIERRE
-
-            if (
-                notificationTimerRef.current
-            ) {
-
-                clearTimeout(
-                    notificationTimerRef.current
-                );
-
-            }
-
-            notificationTimerRef.current =
-                setTimeout(
-                    () => {
-
-                        setAlertNotification(
-                            null
-                        );
-
-                    },
-                    6000
-                );
         }
 
         // ---------------------------------------------
@@ -880,22 +844,153 @@ useEffect(() => {
                     target,
                 }
             );
-
         }
-
     });
 
-    return next;
+    // ---------------------------------------------
+    // ACTUALIZAR EVALUACIONES
+    // ---------------------------------------------
 
-});
+    setEvaluations(
+        (current) => ({
+            ...current,
+            ...nextEvaluations,
+        })
+    );
+
+    // ---------------------------------------------
+    // REGISTRAR ALERTAS EN BACKEND
+    // ---------------------------------------------
+
+    if (
+        alertsToTrigger.length > 0
+    ) {
+
+        alertsToTrigger.forEach(
+            async ({
+                alert,
+                alertSymbol,
+                indicator,
+                operator,
+                target,
+                currentValue,
+            }) => {
+
+                try {
+
+                    const triggerResult =
+                        await triggerAlert(
+                            alert.id,
+                            currentValue
+                        );
+
+                    console.log(
+                        "✅ [ALERTS] Evento registrado:",
+                        triggerResult
+                    );
+
+                    setEvaluations(
+                        (current) => ({
+                            ...current,
+
+                            [alert.id]: {
+                                ...(current[
+                                    alert.id
+                                ] || {}),
+
+                                event_created:
+                                    Boolean(
+                                        triggerResult?.event_created
+                                    ),
+
+                                event_id:
+                                    triggerResult?.event_id ||
+                                    null,
+
+                                triggered:
+                                    Boolean(
+                                        triggerResult?.triggered
+                                    ),
+                            },
+                        })
+                    );
+
+                    await loadEvents();
+
+                    // ---------------------------------
+                    // SONIDO
+                    // ---------------------------------
+
+                    playAlertSound();
+
+                    // ---------------------------------
+                    // NOTIFICACIÓN VISUAL
+                    // ---------------------------------
+
+                    setAlertNotification({
+                        id:
+                            alert.id,
+
+                        symbol:
+                            alertSymbol,
+
+                        operator,
+
+                        target,
+
+                        price:
+                            currentValue,
+                    });
+
+                    // ---------------------------------
+                    // MENSAJE
+                    // ---------------------------------
+
+                    setMessage(
+                        `🚨 Alerta ${alertSymbol} ${indicator} ${operator} ${target} disparada.`
+                    );
+
+                    // ---------------------------------
+                    // AUTOCIERRE
+                    // ---------------------------------
+
+                    if (
+                        notificationTimerRef.current
+                    ) {
+
+                        clearTimeout(
+                            notificationTimerRef.current
+                        );
+                    }
+
+                    notificationTimerRef.current =
+                        setTimeout(
+                            () => {
+
+                                setAlertNotification(
+                                    null
+                                );
+
+                            },
+                            6000
+                        );
+
+                } catch (err) {
+
+                    console.error(
+                        "[ALERTS] Error registrando evento:",
+                        err
+                    );
+                }
+            }
+        );
+    }
 
 }, [
     marketData,
     alerts,
     symbol,
-]);
-
-    // =========================================================
+]);    // =========================================================
     // INITIAL LOAD
     // =========================================================
 
@@ -2545,8 +2640,4 @@ useEffect(() => {
     );
 
 }
-
-
-
-
 

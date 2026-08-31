@@ -597,6 +597,38 @@ export async function createAlert(
     );
 }
 
+// ===================================
+// TRIGGER ALERT WITH MARKET VALUE
+// ===================================
+
+export async function triggerAlert(
+    alertId,
+    currentValue
+) {
+
+    const response =
+        await authenticatedFetch(
+            `${API_BASE_URL}/alerts/${alertId}/trigger`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+
+                body: JSON.stringify({
+                    current_value:
+                        Number(currentValue),
+                }),
+            }
+        );
+
+    return parseResponse(
+        response,
+        "Trigger alert error"
+    );
+}
 
 // ============================================================
 // ALERT EVENTS / HISTORY
@@ -754,10 +786,11 @@ const api = {
     getAlerts,
     getAlertEvents,
     evaluateAlerts,
+    triggerAlert,
     createAlert,
     updateAlert,
     deleteAlert,
-    
+
     getNews,
 
     logout,

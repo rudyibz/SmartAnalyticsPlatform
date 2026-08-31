@@ -418,3 +418,135 @@ def evaluate_user_alerts(
             )
 
     return results
+
+# ============================================================
+# REGISTRAR DISPARO CON VALOR YA OBTENIDO
+# ============================================================
+
+def trigger_alert_with_value(
+    db: Session,
+    alert: Alert,
+    current_value: float,
+) -> dict:
+
+    current_value = float(
+        current_value
+    )
+
+    target_value = float(
+        alert.target_value
+    )
+
+    operator = str(
+        alert.operator
+    ).strip()
+
+    # ========================================================
+    # ALERTA INACTIVA
+    # ========================================================
+
+    if not alert.active:
+
+        return {
+            "alert_id": alert.id,
+            "triggered": False,
+            "event_created": False,
+            "event_id": None,
+            "reason": "alert_inactive",
+        }
+
+    # ========================================================
+    # COMPROBAR CONDICIÓN
+    # ========================================================
+
+    triggered_now = compare_values(
+        current_value=current_value,
+        operator=operator,
+        target_value=target_value,
+    )
+
+    triggered_before = bool(
+        alert.triggered
+    )
+
+    # ========================================================
+    # FALSE → TRUE
+    # ========================================================
+
+    if (
+        triggered_now
+        and not triggered_before
+    ):
+
+        event = create_alert_event(
+            db=db,
+            alert=alert,
+            current_value=current_value,
+        )
+
+        alert.triggered = True
+
+        alert.last_triggered_at = (
+            event.triggered_at
+        )
+
+        db.commit()
+
+        db.refresh(
+            alert
+        )
+
+        return {
+            "alert_id": alert.id,
+            "symbol": str(
+                alert.symbol
+            ).strip().upper(),
+            "indicator": str(
+                alert.indicator
+            ).strip().upper(),
+            "operator": operator,
+            "target_value": target_value,
+            "current_value": current_value,
+            "triggered": True,
+            "event_created": True,
+            "event_id": event.id,
+        }
+
+    # ========================================================
+    # TRUE → FALSE
+    # ========================================================
+
+    if (
+        not triggered_now
+        and triggered_before
+    ):
+
+        alert.triggered = False
+
+        alert.last_triggered_at = None
+
+        db.commit()
+
+        db.refresh(
+            alert
+        )
+
+    # ========================================================
+    # RESULTADO
+    # ========================================================
+
+    return {
+        "alert_id": alert.id,
+        "symbol": str(
+            alert.symbol
+        ).strip().upper(),
+        "indicator": str(
+            alert.indicator
+        ).strip().upper(),
+        "operator": operator,
+        "target_value": target_value,
+        "current_value": current_value,
+        "triggered": triggered_now,
+        "event_created": False,
+        "event_id": None,
+    }
