@@ -6,6 +6,7 @@ import yfinance as yf
 from app.services.score_service import calculate_score
 
 
+
 # ============================================
 # CACHE DE PRECIOS
 # ============================================
@@ -29,13 +30,13 @@ def normalize_market_symbol(symbol: str) -> str:
 
     symbol_map = {
         "GOLD": "GC=F",
+        "XAU-USD": "GC=F",
     }
 
     return symbol_map.get(
         normalized,
         normalized,
     )
-
 
 # ============================================
 # PRECIO ACTUAL

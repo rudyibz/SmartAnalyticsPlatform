@@ -8,7 +8,6 @@ import {
     getAlerts,
     getAlertEvents,
     evaluateAlerts,
-    triggerAlert,
     createAlert,
     updateAlert,
     deleteAlert,
@@ -190,7 +189,90 @@ function playAlertSound() {
     }
 }
 
+// =========================================================
+// BROWSER NOTIFICATION
+// =========================================================
 
+async function showBrowserNotification({
+    symbol,
+    indicator,
+    operator,
+    target,
+    currentValue,
+}) {
+
+    try {
+
+        // Navegador sin soporte
+        if (
+            typeof window === "undefined" ||
+            !("Notification" in window)
+        ) {
+            return;
+        }
+
+        // Solicitar permiso
+        if (
+            Notification.permission === "default"
+        ) {
+
+            const permission =
+                await Notification.requestPermission();
+
+            if (
+                permission !== "granted"
+            ) {
+                return;
+            }
+
+        }
+
+        // Permiso no concedido
+        if (
+            Notification.permission !== "granted"
+        ) {
+            return;
+        }
+
+        const formattedCurrent =
+            Number(currentValue).toLocaleString(
+                "es-ES",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                }
+            );
+
+        const formattedTarget =
+            Number(target).toLocaleString(
+                "es-ES",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                }
+            );
+
+        new Notification(
+            `🚨 Alerta ${symbol}`,
+            {
+                body:
+                    `${indicator} ${operator} ${formattedTarget}\n` +
+                    `Valor actual: ${formattedCurrent}`,
+                tag:
+                    `smartanalytics-alert-${symbol}-${indicator}`,
+            }
+        );
+
+    } catch (err) {
+
+        console.warn(
+            "[ALERTS] BROWSER NOTIFICATION ERROR:",
+            err
+        );
+
+    }
+
+}
 // =========================================================
 // FORMAT CURRENT VALUE
 // =========================================================
@@ -523,8 +605,7 @@ useEffect(() => {
     ];
 
     const nextEvaluations = {};
-    const alertsToTrigger = [];
-
+    
     alerts.forEach((alert) => {
 
         const alertSymbol =
@@ -800,7 +881,7 @@ useEffect(() => {
         // NUEVA ALERTA
         // ---------------------------------------------
 
-        if (newlyTriggered) {
+                if (newlyTriggered) {
 
             console.log(
                 "🚨 [ALERTS] ALERTA DISPARADA:",
@@ -814,14 +895,23 @@ useEffect(() => {
                 }
             );
 
-            alertsToTrigger.push({
-                alert,
-                alertSymbol,
+            // =============================================
+            // NOTIFICACIÓN DEL NAVEGADOR
+            // =============================================
+
+            showBrowserNotification({
+                symbol: alertSymbol,
                 indicator,
                 operator,
                 target,
                 currentValue,
             });
+
+            // =============================================
+            // REGISTRAR ALERTA PARA BACKEND
+            // =============================================
+
+            
         }
 
         // ---------------------------------------------
@@ -847,187 +937,291 @@ useEffect(() => {
         }
     });
 
-    // ---------------------------------------------
-    // ACTUALIZAR EVALUACIONES
-    // ---------------------------------------------
+// ---------------------------------------------
+// ACTUALIZAR EVALUACIONES
+// ---------------------------------------------
 
-    setEvaluations(
-        (current) => ({
-            ...current,
-            ...nextEvaluations,
-        })
-    );
-
-    // ---------------------------------------------
-    // REGISTRAR ALERTAS EN BACKEND
-    // ---------------------------------------------
-
-    if (
-        alertsToTrigger.length > 0
-    ) {
-
-        alertsToTrigger.forEach(
-            async ({
-                alert,
-                alertSymbol,
-                indicator,
-                operator,
-                target,
-                currentValue,
-            }) => {
-
-                try {
-
-                    const triggerResult =
-                        await triggerAlert(
-                            alert.id,
-                            currentValue
-                        );
-
-                    console.log(
-                        "✅ [ALERTS] Evento registrado:",
-                        triggerResult
-                    );
-
-                    setEvaluations(
-                        (current) => ({
-                            ...current,
-
-                            [alert.id]: {
-                                ...(current[
-                                    alert.id
-                                ] || {}),
-
-                                event_created:
-                                    Boolean(
-                                        triggerResult?.event_created
-                                    ),
-
-                                event_id:
-                                    triggerResult?.event_id ||
-                                    null,
-
-                                triggered:
-                                    Boolean(
-                                        triggerResult?.triggered
-                                    ),
-                            },
-                        })
-                    );
-
-                    await loadEvents();
-
-                    // ---------------------------------
-                    // SONIDO
-                    // ---------------------------------
-
-                    playAlertSound();
-
-                    // ---------------------------------
-                    // NOTIFICACIÓN VISUAL
-                    // ---------------------------------
-
-                    setAlertNotification({
-                        id:
-                            alert.id,
-
-                        symbol:
-                            alertSymbol,
-
-                        operator,
-
-                        target,
-
-                        price:
-                            currentValue,
-                    });
-
-                    // ---------------------------------
-                    // MENSAJE
-                    // ---------------------------------
-
-                    setMessage(
-                        `🚨 Alerta ${alertSymbol} ${indicator} ${operator} ${target} disparada.`
-                    );
-
-                    // ---------------------------------
-                    // AUTOCIERRE
-                    // ---------------------------------
-
-                    if (
-                        notificationTimerRef.current
-                    ) {
-
-                        clearTimeout(
-                            notificationTimerRef.current
-                        );
-                    }
-
-                    notificationTimerRef.current =
-                        setTimeout(
-                            () => {
-
-                                setAlertNotification(
-                                    null
-                                );
-
-                            },
-                            6000
-                        );
-
-                } catch (err) {
-
-                    console.error(
-                        "[ALERTS] Error registrando evento:",
-                        err
-                    );
-                }
-            }
-        );
-    }
+setEvaluations(
+    (current) => ({
+        ...current,
+        ...nextEvaluations,
+    })
+);
 
 }, [
     marketData,
     alerts,
     symbol,
-]);    // =========================================================
+]);
+    // =========================================================
     // INITIAL LOAD
     // =========================================================
 
-    useEffect(() => {
+    // =========================================================
+// BACKEND ALERT EVENTS FROM WEBSOCKET
+// =========================================================
 
-        async function initialize() {
+useEffect(() => {
 
-            setLoading(true);
-            setError("");
+    if (!marketData) {
+        return;
+    }
 
-            try {
+    const backendEvents =
+        Array.isArray(
+            marketData.alert_events
+        )
+            ? marketData.alert_events
+            : [];
 
-                await loadAlerts();
+    if (
+        backendEvents.length === 0
+    ) {
+        return;
+    }
 
-                await evaluateCurrentAlerts();
+    console.log(
+        "🚨 [ALERTS] EVENTOS RECIBIDOS DEL BACKEND:",
+        backendEvents
+    );
 
-                await loadEvents();
+    backendEvents.forEach(
+        (event) => {
 
-            } catch (err) {
+            if (!event) {
+                return;
+            }
 
-                console.error(
-                    "[ALERTS] Initial load error:",
-                    err
+            const alertId =
+                event.alert_id;
+
+            if (
+                alertId === null ||
+                alertId === undefined
+            ) {
+                return;
+            }
+
+            const symbol =
+                String(
+                    event.symbol || ""
+                )
+                    .trim()
+                    .toUpperCase();
+
+            const indicator =
+                String(
+                    event.indicator || ""
+                )
+                    .trim()
+                    .toUpperCase();
+
+            const operator =
+                String(
+                    event.operator || ""
+                )
+                    .trim();
+
+            const target =
+                Number(
+                    event.target_value
                 );
 
-            } finally {
+            const currentValue =
+                Number(
+                    event.current_value
+                );
 
-                setLoading(false);
+            console.log(
+                "🚨 [ALERTS] EVENTO BACKEND:",
+                {
+                    alertId,
+                    symbol,
+                    indicator,
+                    operator,
+                    target,
+                    currentValue,
+                    eventId:
+                        event.event_id,
+                }
+            );
 
+            // =============================================
+            // EVITAR PROCESAR EL MISMO EVENTO DOS VECES
+            // =============================================
+
+            const eventKey =
+                event.event_id ||
+                `${alertId}-${event.triggered_at || currentValue}`;
+
+            const processedEvents =
+                triggeredAlertsRef.current;
+
+            if (
+                processedEvents[
+                    `event-${eventKey}`
+                ]
+            ) {
+                return;
             }
+
+            processedEvents[
+                `event-${eventKey}`
+            ] = true;
+
+            // =============================================
+            // ACTUALIZAR EVALUACIÓN
+            // =============================================
+
+            setEvaluations(
+                (current) => ({
+                    ...current,
+
+                    [alertId]: {
+                        ...(current[
+                            alertId
+                        ] || {}),
+
+                        alert_id:
+                            alertId,
+
+                        symbol,
+
+                        indicator,
+
+                        operator,
+
+                        target_value:
+                            target,
+
+                        current_value:
+                            currentValue,
+
+                        triggered:
+                            true,
+
+                        supported:
+                            true,
+
+                        active:
+                            true,
+
+                        event_created:
+                            true,
+
+                        event_id:
+                            event.event_id ||
+                            null,
+                    },
+                })
+            );
+
+            // =============================================
+            // HISTORIAL
+            // =============================================
+
+            loadEvents();
+
+            // =============================================
+            // SONIDO
+            // =============================================
+
+            playAlertSound();
+
+            // =============================================
+            // NOTIFICACIÓN VISUAL
+            // =============================================
+
+            setAlertNotification({
+                id:
+                    alertId,
+
+                symbol,
+
+                operator,
+
+                target,
+
+                price:
+                    currentValue,
+            });
+
+            // =============================================
+            // MENSAJE
+            // =============================================
+
+            setMessage(
+                `🚨 Alerta ${symbol} ${indicator} ${operator} ${target} disparada.`
+            );
+
+            // =============================================
+            // AUTOCIERRE
+            // =============================================
+
+            if (
+                notificationTimerRef.current
+            ) {
+
+                clearTimeout(
+                    notificationTimerRef.current
+                );
+            }
+
+            notificationTimerRef.current =
+                setTimeout(
+                    () => {
+
+                        setAlertNotification(
+                            null
+                        );
+
+                    },
+                    6000
+                );
+
+        }
+    );
+
+}, [
+    marketData,
+]);
+// =========================================================
+// INITIAL LOAD
+// =========================================================
+
+useEffect(() => {
+
+    async function initialize() {
+
+        setLoading(true);
+        setError("");
+
+        try {
+
+            await loadAlerts();
+
+            await evaluateCurrentAlerts();
+
+            await loadEvents();
+
+        } catch (err) {
+
+            console.error(
+                "[ALERTS] Initial load error:",
+                err
+            );
+
+        } finally {
+
+            setLoading(false);
 
         }
 
+    }
 
-        initialize();
+    initialize();
 
-    }, []);
+}, []);
 
 
     // =========================================================
