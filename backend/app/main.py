@@ -34,7 +34,6 @@ from app.api.user_watchlist import router as user_watchlist_router
 from app.api.portfolio import router as portfolio_router
 from app.api.portfolio_trade import router as portfolio_trade_router
 from app.api.analysis import router as analysis_router
-from app.api.ai_analysis import router as ai_analysis_router
 from app.api.score import router as score_router
 from app.api.recommendation import router as recommendation_router
 
@@ -209,13 +208,6 @@ app.include_router(
     analysis_router,
     prefix=API_PREFIX,
 )
-
-
-app.include_router(
-    ai_analysis_router,
-    prefix=API_PREFIX,
-)
-
 
 app.include_router(
     score_router,
