@@ -295,3 +295,245 @@
     }
 
 }
+
+/* =========================================================
+   SCANNER 2.0 - INDICADORES
+   ========================================================= */
+
+.indicator-positive{
+    color:#86efac;
+    font-weight:600;
+}
+
+.indicator-negative{
+    color:#fca5a5;
+    font-weight:600;
+}
+
+.indicator-warning{
+    color:#fde68a;
+    font-weight:600;
+}
+
+.indicator-muted{
+    color:#94a3b8;
+}
+
+.opportunity-label{
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+    color:#94a3b8;
+    font-weight:600;
+}
+
+/* =========================================================
+   SCANNER 2.2 - FILTROS
+   ========================================================= */
+
+.scanner-filters{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:20px;
+}
+
+.scanner-filters button{
+    padding:8px 14px;
+    border-radius:999px;
+    border:1px solid #334155;
+    background:#111827;
+    color:#94a3b8;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    transition:.2s;
+}
+
+.scanner-filters button:hover{
+    background:#1e293b;
+    color:white;
+}
+
+.scanner-filters button.active{
+    background:#1e293b;
+    border-color:#60a5fa;
+    color:white;
+}
+
+/* =========================================================
+   SCANNER 2.2 - RESUMEN DE OPORTUNIDADES
+   ========================================================= */
+
+.scanner-opportunity-summary{
+    margin-bottom:20px;
+    padding:18px;
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:12px;
+}
+
+.scanner-summary-title{
+    color:white;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.5px;
+}
+
+.scanner-summary-count{
+    margin-top:4px;
+    color:#64748b;
+    font-size:12px;
+}
+
+.scanner-summary-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:10px;
+    margin-top:14px;
+}
+
+.summary-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    background:#111827;
+    border:1px solid #1e293b;
+    border-radius:10px;
+}
+
+.summary-item strong{
+    color:white;
+    font-size:18px;
+}
+
+.summary-item small{
+    color:#94a3b8;
+    font-size:11px;
+}
+
+@media (max-width:768px){
+
+    .scanner-summary-grid{
+        grid-template-columns:repeat(2, 1fr);
+    }
+
+}
+
+/* =========================================================
+   SCANNER 2.2 - TOP OPPORTUNITY
+   ========================================================= */
+
+.scanner-top-opportunity{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:16px;
+    padding:18px 20px;
+    background:#111827;
+    border:1px solid #334155;
+    border-radius:12px;
+}
+
+.top-opportunity-icon{
+    font-size:30px;
+}
+
+.top-opportunity-content{
+    flex:1;
+}
+
+.top-opportunity-title{
+    display:block;
+    margin-bottom:5px;
+    color:#94a3b8;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1px;
+}
+
+.top-opportunity-main{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.top-opportunity-main strong{
+    color:white;
+    font-size:22px;
+}
+
+.top-opportunity-score{
+    color:#86efac;
+    font-size:20px;
+    font-weight:800;
+}
+
+.top-opportunity-label{
+    padding:4px 9px;
+    border-radius:999px;
+    background:#052e16;
+    border:1px solid #166534;
+    color:#86efac;
+    font-size:11px;
+    font-weight:700;
+}
+
+.top-opportunity-details{
+    margin-top:5px;
+    color:#64748b;
+    font-size:12px;
+}
+
+@media (max-width:768px){
+
+    .scanner-top-opportunity{
+        align-items:flex-start;
+    }
+
+    .top-opportunity-main{
+        flex-wrap:wrap;
+    }
+
+}
+
+/* =========================================================
+   SCANNER 2.3 - FILAS INTERACTIVAS
+   ========================================================= */
+
+.scanner-row-clickable{
+    cursor:pointer;
+}
+
+.scanner-row-clickable:hover{
+    background:#172033;
+}
+
+.scanner-row-clickable td{
+    transition:.15s;
+}
+
+.scanner-row-clickable:hover .scanner-symbol{
+    color:#60a5fa;
+}
+
+/* =========================================================
+   SCANNER 2.3 - FILAS INTERACTIVAS
+   ========================================================= */
+
+.scanner-row-clickable{
+    cursor:pointer;
+}
+
+.scanner-row-clickable:hover{
+    background:#172033;
+}
+
+.scanner-row-clickable td{
+    transition:.15s;
+}
+
+.scanner-row-clickable:hover .scanner-symbol{
+    color:#60a5fa;
+}
