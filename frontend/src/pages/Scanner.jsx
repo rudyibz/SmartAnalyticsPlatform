@@ -9,6 +9,9 @@ import { useMarketContext } from "../context/MarketContext";
 
 import {
     getScanner,
+    getAlerts,
+    createAlert,
+    createTradingSetup,
 } from "../services/api";
 
 
@@ -27,6 +30,7 @@ export default function Scanner() {
     const [opportunityFilter, setOpportunityFilter] = useState("all");
     const [sortBy, setSortBy] = useState("opportunity_score");
     const [sortDirection, setSortDirection] = useState("desc");
+    const [quantity, setQuantity] = useState(1);
 
 
     // =========================================================
@@ -389,7 +393,150 @@ export default function Scanner() {
 
     }, [assets]);
 
+    async function createSetupAlert() {
 
+    if (!topOpportunity) {
+        return;
+    }
+
+    const direction = topOpportunity.direction;
+
+    if (
+        direction !== "LONG" &&
+        direction !== "SHORT"
+    ) {
+        return;
+    }
+
+    const symbol =
+        String(topOpportunity.symbol || "")
+            .trim()
+            .toUpperCase();
+
+    const entry = Number(topOpportunity.entry);
+    const stopLoss = Number(topOpportunity.stop_loss);
+    const takeProfit = Number(topOpportunity.take_profit);
+    const atr = Number(topOpportunity.atr);
+    const riskReward = Number(topOpportunity.risk_reward);
+    const opportunityScore = Number(
+        topOpportunity.opportunity_score
+    );
+    const opportunityLabel =
+    topOpportunity.opportunity_label;
+    if (
+        !symbol ||
+        !Number.isFinite(entry) ||
+        !Number.isFinite(stopLoss) ||
+        !Number.isFinite(takeProfit)
+    ) {
+        return;
+    }
+
+    const entryOperator =
+        direction === "LONG" ? ">=" : "<=";
+
+    const stopOperator =
+        direction === "LONG" ? "<=" : ">=";
+
+    const targetOperator =
+        direction === "LONG" ? ">=" : "<=";
+
+    const setupData = {
+    symbol,
+    direction,
+    entry,
+    quantity: Number(quantity),
+    stop_loss: stopLoss,
+    take_profit: takeProfit,
+    atr,
+    risk_reward: riskReward,
+    opportunity_score: opportunityScore,
+    opportunity_label: opportunityLabel,
+};
+    try {
+        await createTradingSetup(setupData);
+
+        const existingAlerts = await getAlerts();
+
+        const alerts = Array.isArray(existingAlerts)
+            ? existingAlerts
+            : existingAlerts?.data || [];
+
+        const setupAlerts = [
+            {
+                operator: entryOperator,
+                target_value: entry,
+            },
+            {
+                operator: stopOperator,
+                target_value: stopLoss,
+            },
+            {
+                operator: targetOperator,
+                target_value: takeProfit,
+            },
+        ];
+
+        let created = 0;
+
+        for (const setup of setupAlerts) {
+
+            const duplicate = alerts.some(alertItem =>
+                String(alertItem.symbol || "")
+                    .trim()
+                    .toUpperCase() === symbol &&
+                String(alertItem.indicator || "").toUpperCase() === "PRICE" &&
+                String(alertItem.operator || "") === setup.operator &&
+                Number(alertItem.target_value) === setup.target_value &&
+                alertItem.is_active !== false
+            );
+
+            if (duplicate) {
+                continue;
+            }
+
+            await createAlert({
+                symbol,
+                indicator: "price",
+                operator: setup.operator,
+                target_value: setup.target_value,
+            });
+
+            created++;
+        }
+
+        if (created === 0) {
+
+            alert(
+                `⚠️ Las 3 alertas del setup de ${symbol} ya existen.`
+            );
+
+        } else if (created < 3) {
+
+            alert(
+                `🔔 ${created} alerta(s) nueva(s) creada(s) para ${symbol}.`
+            );
+
+        } else {
+
+            alert(
+                `🔔 3 alertas creadas para ${symbol}.`
+            );
+        }
+
+    } catch (err) {
+
+        console.error(
+            "[SCANNER] Error creando alertas:",
+            err
+        );
+
+        alert(
+            err?.message ||
+            "No se pudieron crear las alertas."
+        );
+    }
+}
     // =========================================================
     // RENDER
     // =========================================================
@@ -481,6 +628,106 @@ export default function Scanner() {
 
             )}
 
+            {/* ================================================= */}
+            {/* TRADING SETUP */}
+            {/* ================================================= */}
+
+            {!loading &&
+                topOpportunity &&
+                topOpportunity.direction &&
+                topOpportunity.direction !== "Neutral" && (
+
+                    <div className="top-opportunity-trading">
+
+                        <div className="trading-setup-title">
+                            TRADING SETUP
+                        </div>
+
+                        <div className="trading-setup-direction">
+
+                            <span
+                                className={`trading-direction ${
+                                    String(topOpportunity.direction).toLowerCase()
+                                }`}
+                            >
+                                {topOpportunity.direction === "LONG"
+                                    ? "🟢 LONG"
+                                    : "🔴 SHORT"}
+                            </span>
+
+                        </div>
+
+                        <div className="trading-setup-grid">
+
+                            <div className="trading-setup-item">
+                                <span>ENTRY</span>
+                                <strong>
+                                    ${formatNumber(topOpportunity.entry, 2)}
+                                </strong>
+                            </div>
+
+                            <div className="trading-setup-item stop">
+                                <span>STOP LOSS</span>
+                                <strong>
+                                    ${formatNumber(topOpportunity.stop_loss, 2)}
+                                </strong>
+                            </div>
+
+                            <div className="trading-setup-item target">
+                                <span>TAKE PROFIT</span>
+                                <strong>
+                                    ${formatNumber(topOpportunity.take_profit, 2)}
+                                </strong>
+                            </div>
+
+                            <div className="trading-setup-item quantity">
+                                <span>QUANTITY</span>
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        const value = Number(e.target.value);
+                                        setQuantity(
+                                            Number.isFinite(value) && value > 0
+                                                ? value
+                                                : 0.01
+                                        );
+                                    }}
+                                />
+                            </div>
+
+                            <div className="trading-setup-item">
+                                <span>ATR</span>
+                                <strong>
+                                    {formatNumber(topOpportunity.atr, 4)}
+                                </strong>
+                            </div>
+                            <div className="trading-setup-item rr">
+                                <span>RISK / REWARD</span>
+                                <strong>
+                                    1 : {formatNumber(topOpportunity.risk_reward, 2)}
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <div className="trading-setup-actions">
+
+                            <button
+                                type="button"
+                                className="trading-alert-button"
+                                onClick={createSetupAlert}
+                            >
+                                🔔 Crear alertas del Setup
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                )}
 
             {/* ================================================= */}
             {/* RESUMEN DE OPORTUNIDADES */}
@@ -1170,3 +1417,9 @@ export default function Scanner() {
     );
 
 }
+
+
+
+
+
+

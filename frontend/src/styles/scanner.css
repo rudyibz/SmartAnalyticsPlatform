@@ -537,3 +537,267 @@
 .scanner-row-clickable:hover .scanner-symbol{
     color:#60a5fa;
 }
+
+/* ======================================
+   SCANNER 3.1 - TRADING SETUP
+   ====================================== */
+
+.top-opportunity-trading{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid #334155;
+}
+
+.trading-setup-title{
+    margin-bottom:10px;
+    color:#94a3b8;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1px;
+}
+
+.trading-setup-direction{
+    margin-bottom:12px;
+}
+
+.trading-direction{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.trading-direction.long{
+    background:#052e16;
+    border:1px solid #166534;
+    color:#86efac;
+}
+
+.trading-direction.short{
+    background:#450a0a;
+    border:1px solid #991b1b;
+    color:#fca5a5;
+}
+
+.trading-direction.neutral{
+    background:#1e293b;
+    border:1px solid #475569;
+    color:#cbd5e1;
+}
+
+.trading-setup-grid{
+    display:grid;
+    grid-template-columns:
+        repeat(5, minmax(110px, 1fr));
+    gap:10px;
+}
+
+.trading-setup-item{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    padding:10px 12px;
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:8px;
+}
+
+.trading-setup-item span{
+    color:#64748b;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.5px;
+}
+
+.trading-setup-item strong{
+    color:#e2e8f0;
+    font-size:14px;
+}
+
+.trading-setup-item.stop strong{
+    color:#fca5a5;
+}
+
+.trading-setup-item.target strong{
+    color:#86efac;
+}
+
+.trading-setup-item.rr strong{
+    color:#93c5fd;
+}
+
+
+@media (max-width:900px){
+
+    .trading-setup-grid{
+        grid-template-columns:
+            repeat(3, minmax(110px, 1fr));
+    }
+
+}
+
+
+@media (max-width:600px){
+
+    .trading-setup-grid{
+        grid-template-columns:
+            repeat(2, minmax(110px, 1fr));
+    }
+
+}
+/* =====================================================
+   TRADING SETUP STATUS
+===================================================== */
+
+.setup-status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.setup-status.active {
+    background: #052e16;
+    border: 1px solid #166534;
+    color: #86efac;
+}
+
+.setup-status.hit_entry {
+    background: #172554;
+    border: 1px solid #1d4ed8;
+    color: #93c5fd;
+}
+
+.setup-status.hit_tp {
+    background: #052e16;
+    border: 1px solid #15803d;
+    color: #4ade80;
+}
+
+.setup-status.hit_sl {
+    background: #450a0a;
+    border: 1px solid #991b1b;
+    color: #fca5a5;
+}
+
+.setup-status.closed {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+}
+/* ================================
+   EQUITY CURVE
+================================ */
+
+.equity-chart-container {
+    margin-top: 16px;
+    padding: 18px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+}
+
+.equity-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.equity-chart-header div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.equity-chart-header span {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.equity-chart-header strong {
+    font-size: 24px;
+}
+
+.equity-positive {
+    color: #86efac;
+}
+
+.equity-negative {
+    color: #fca5a5;
+}
+
+.equity-chart {
+    width: 100%;
+    height: 320px;
+    overflow: hidden;
+}
+
+.equity-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.equity-zero-line {
+    stroke: #334155;
+    stroke-width: 1;
+    stroke-dasharray: 6 6;
+}
+
+.equity-line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.equity-line.positive {
+    stroke: #4ade80;
+}
+
+.equity-line.negative {
+    stroke: #f87171;
+}
+
+.equity-point {
+    stroke-width: 2;
+}
+
+.equity-point.positive {
+    fill: #4ade80;
+    stroke: #14532d;
+}
+
+.equity-point.negative {
+    fill: #f87171;
+    stroke: #7f1d1d;
+}
+
+.equity-chart-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #1e293b;
+    color: #64748b;
+    font-size: 11px;
+}
+
+@media (max-width: 600px) {
+
+    .equity-chart {
+        height: 240px;
+    }
+
+    .equity-chart-footer {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+}

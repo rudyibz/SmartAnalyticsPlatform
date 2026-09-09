@@ -10,15 +10,18 @@ import { useAuth } from "./context/AuthContext";
 
 import MainLayout from "./layouts/MainLayout";
 
+// Pages
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Scanner from "./pages/Scanner";
+import TradingSetups from "./pages/TradingSetups";
+import TradingPerformance from "./pages/TradingPerformance";
 import Portfolio from "./pages/Portfolio";
 import Watchlist from "./pages/Watchlist";
 import News from "./pages/News";
 import Alerts from "./pages/Alerts";
-import Settings from "./pages/Settings";
 import AILab from "./pages/AILab";
-import Login from "./pages/Login";
+import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 
 
@@ -116,15 +119,16 @@ function PublicRoute({ children }) {
 }
 
 
-export default function App() {
+function App() {
 
     return (
-
         <MarketProvider>
 
             <BrowserRouter>
 
                 <Routes>
+
+                    {/* ==================== PUBLIC ==================== */}
 
                     <Route
                         path="/login"
@@ -136,12 +140,50 @@ export default function App() {
                     />
 
 
+                    {/* ==================== PROTECTED ==================== */}
+
                     <Route
                         path="/"
                         element={
                             <ProtectedRoute>
                                 <MainLayout>
                                     <Dashboard />
+                                </MainLayout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+
+                    <Route
+                        path="/scanner"
+                        element={
+                            <ProtectedRoute>
+                                <MainLayout>
+                                    <Scanner />
+                                </MainLayout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+
+                    <Route
+                        path="/trading-setups"
+                        element={
+                            <ProtectedRoute>
+                                <MainLayout>
+                                    <TradingSetups />
+                                </MainLayout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+
+                    <Route
+                        path="/trading-performance"
+                        element={
+                            <ProtectedRoute>
+                                <MainLayout>
+                                    <TradingPerformance />
                                 </MainLayout>
                             </ProtectedRoute>
                         }
@@ -173,18 +215,6 @@ export default function App() {
 
 
                     <Route
-                        path="/scanner"
-                        element={
-                            <ProtectedRoute>
-                                <MainLayout>
-                                    <Scanner />
-                                </MainLayout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-
-                    <Route
                         path="/news"
                         element={
                             <ProtectedRoute>
@@ -209,18 +239,6 @@ export default function App() {
 
 
                     <Route
-                        path="/settings"
-                        element={
-                            <ProtectedRoute>
-                                <MainLayout>
-                                    <Settings />
-                                </MainLayout>
-                            </ProtectedRoute>
-                        }
-                    />
-
-
-                    <Route
                         path="/ai"
                         element={
                             <ProtectedRoute>
@@ -233,14 +251,32 @@ export default function App() {
 
 
                     <Route
+                        path="/settings"
+                        element={
+                            <ProtectedRoute>
+                                <MainLayout>
+                                    <Settings />
+                                </MainLayout>
+                            </ProtectedRoute>
+                        }
+                    />
+
+
+                    {/* ==================== ADMIN ==================== */}
+
+                    <Route
                         path="/admin"
                         element={
                             <AdminRoute>
-                                <Admin />
+                                <MainLayout>
+                                    <Admin />
+                                </MainLayout>
                             </AdminRoute>
                         }
                     />
 
+
+                    {/* ==================== FALLBACK ==================== */}
 
                     <Route
                         path="*"
@@ -259,3 +295,6 @@ export default function App() {
         </MarketProvider>
     );
 }
+
+
+export default App;

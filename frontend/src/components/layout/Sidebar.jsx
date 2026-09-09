@@ -2,6 +2,8 @@ import {
     LayoutDashboard,
     ScanSearch,
     Briefcase,
+    ChartNoAxesCombined,
+    ChartSpline,
     Star,
     Newspaper,
     Bell,
@@ -17,11 +19,7 @@ import {
 export default function Sidebar() {
 
     const linkClass = ({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-            isActive
-                ? "bg-blue-600 text-white"
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
-        }`;
+    `sidebar-item ${isActive ? "active" : ""}`;
 
     return (
 
@@ -40,18 +38,16 @@ export default function Sidebar() {
             </div>
 
 
-            <nav className="space-y-2">
+            <nav className="sidebar-nav">
 
                 <NavLink
                     to="/"
-                    className={linkClass}
-                >
+                    className={linkClass}                >
                     <LayoutDashboard size={18} />
                     <span>Dashboard</span>
                 </NavLink>
-
-
-                <NavLink
+		
+		                <NavLink
                     to="/scanner"
                     className={linkClass}
                 >
@@ -61,12 +57,30 @@ export default function Sidebar() {
 
 
                 <NavLink
-                    to="/portfolio"
-                    className={linkClass}
-                >
-                    <Briefcase size={18} />
-                    <span>Portfolio</span>
-                </NavLink>
+    to="/trading-setups"
+    className={linkClass}
+>
+    <ChartNoAxesCombined size={18} />
+    <span>Trading Setups</span>
+</NavLink>
+
+
+<NavLink
+    to="/trading-performance"
+    className={linkClass}
+>
+    <ChartSpline size={18} />
+    <span>Performance</span>
+</NavLink>
+
+
+<NavLink
+    to="/portfolio"
+    className={linkClass}
+>
+    <Briefcase size={18} />
+    <span>Portfolio</span>
+</NavLink>
 
 
                 <NavLink

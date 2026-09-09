@@ -1055,7 +1055,7 @@ useEffect(() => {
                 `${alertId}-${event.triggered_at || currentValue}`;
 
             const processedEvents =
-                triggeredAlertsRef.current;
+    		processedEventsRef.current;
 
             if (
                 processedEvents[
@@ -1185,6 +1185,7 @@ useEffect(() => {
 }, [
     marketData,
 ]);
+
 // =========================================================
 // INITIAL LOAD
 // =========================================================
@@ -1214,9 +1215,7 @@ useEffect(() => {
         } finally {
 
             setLoading(false);
-
         }
-
     }
 
     initialize();

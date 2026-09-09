@@ -51,3 +51,11 @@ export {
     getNews,
 
 } from "../api/api.js";
+export {
+    createTradingSetup,
+    getTradingSetups,
+    getTradingSetupHistory,
+    closeTradingSetup,
+    getTradingSetupPerformance,
+    getTradingSetupPerformanceBySymbol,
+} from "../api/api";

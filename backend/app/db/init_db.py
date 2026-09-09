@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.user_watchlist import UserWatchlist
 from app.models.portfolio import Portfolio
 from app.models.alert import Alert
+from app.models.trading_setup import TradingSetup
 
 
 def init_database():

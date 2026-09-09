@@ -2,6 +2,7 @@
 SmartAnalyticsPlatform
 Punto de entrada principal de la aplicación.
 """
+import asyncio
 
 from contextlib import asynccontextmanager
 
@@ -20,7 +21,9 @@ from app.core.exceptions import (
 from app.core.logger import logger
 
 from app.db.init_db import init_database
-
+from app.db.database import SessionLocal
+from app.services.trading_setup_monitor import evaluate_active_setups
+from app.services.trading_setup_scheduler import trading_setup_monitor
 from app.websocket.market_ws import router as websocket_router
 
 from app.api.users import router as users_router
@@ -36,6 +39,8 @@ from app.api.portfolio_trade import router as portfolio_trade_router
 from app.api.analysis import router as analysis_router
 from app.api.score import router as score_router
 from app.api.recommendation import router as recommendation_router
+from app.api.trading_setups import router as trading_setups_router
+
 
 
 @asynccontextmanager
@@ -51,13 +56,17 @@ async def lifespan(app: FastAPI):
         "Base de datos inicializada correctamente"
     )
 
+    monitor_task = asyncio.create_task(
+        trading_setup_monitor()
+    )
+
     yield
+
+    monitor_task.cancel()
 
     logger.info(
         "Cerrando SmartAnalyticsPlatform..."
     )
-
-
 app = FastAPI(
     title=APP_NAME,
     version=VERSION,
@@ -67,8 +76,6 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
-
-
 # =====================================================
 # GLOBAL EXCEPTION HANDLERS
 # =====================================================
@@ -149,6 +156,10 @@ app.include_router(
     prefix=API_PREFIX,
 )
 
+app.include_router(
+    trading_setups_router,
+    prefix=API_PREFIX,
+)
 
 app.include_router(
     auth_router,

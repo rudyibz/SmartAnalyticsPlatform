@@ -798,3 +798,113 @@ const api = {
 
 
 export default api;
+
+export async function createTradingSetup(data) {
+    const response = await authenticatedFetch(
+        `${API_BASE_URL}/trading-setups/`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(
+            error.detail || "Error creando trading setup"
+        );
+    }
+
+    return response.json();
+}
+export async function getTradingSetups() {
+
+    const response = await authenticatedFetch(
+        `${API_BASE_URL}/trading-setups/`
+    );
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+
+        throw new Error(
+            error.detail || "Error cargando trading setups"
+        );
+    }
+
+    return response.json();
+}
+export async function getTradingSetupHistory() {
+    const response = await authenticatedFetch(
+        `${API_BASE_URL}/trading-setups/history`
+    );
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+
+        throw new Error(
+            error.detail ||
+            "Error cargando historial de trading setups"
+        );
+    }
+
+    return response.json();
+}
+export async function closeTradingSetup(setupId) {
+    const response = await authenticatedFetch(
+        `${API_BASE_URL}/trading-setups/${setupId}/close`,
+        {
+            method: "PATCH",
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+
+        throw new Error(
+            error.detail || "Error cerrando trading setup"
+        );
+    }
+
+    return response.json();
+}
+export async function getTradingSetupPerformance() {
+
+    const response = await authenticatedFetch(
+        `${API_BASE_URL}/trading-setups/performance`
+    );
+
+    if (!response.ok) {
+
+        const error =
+            await response.json().catch(() => ({}));
+
+        throw new Error(
+            error.detail ||
+            "Error cargando performance"
+        );
+    }
+
+    return response.json();
+}
+
+
+// ============================================================
+// TRADING SETUPS - PERFORMANCE BY SYMBOL
+// ============================================================
+
+export async function getTradingSetupPerformanceBySymbol() {
+
+    const response =
+        await authenticatedFetch(
+            `${API_BASE_URL}/trading-setups/performance/by-symbol`
+        );
+
+    return parseResponse(
+        response,
+        "Performance by symbol error"
+    );
+}
+

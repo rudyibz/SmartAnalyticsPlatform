@@ -19,6 +19,108 @@ WATCHLIST = [
 analysis_engine = AnalysisEngine()
 
 
+def calculate_trading_setup(
+    price,
+    atr,
+    trend,
+):
+    """
+    Calcula Entry, Stop Loss, Take Profit
+    y Risk/Reward utilizando ATR.
+    """
+
+    if price is None or atr is None:
+        return {
+            "direction": "Neutral",
+            "entry": None,
+            "stop_loss": None,
+            "take_profit": None,
+            "risk_reward": None,
+        }
+
+    price = float(price)
+    atr = float(atr)
+
+    if atr <= 0:
+        return {
+            "direction": "Neutral",
+            "entry": round(price, 2),
+            "stop_loss": None,
+            "take_profit": None,
+            "risk_reward": None,
+        }
+
+    # =========================================================
+    # BULLISH SETUP
+    # =========================================================
+
+    if trend == "Bullish":
+
+        direction = "LONG"
+
+        entry = price
+
+        stop_loss = price - (
+            atr * 1.5
+        )
+
+        risk = entry - stop_loss
+
+        take_profit = entry + (
+            risk * 2
+        )
+
+    # =========================================================
+    # BEARISH SETUP
+    # =========================================================
+
+    elif trend == "Bearish":
+
+        direction = "SHORT"
+
+        entry = price
+
+        stop_loss = price + (
+            atr * 1.5
+        )
+
+        risk = stop_loss - entry
+
+        take_profit = entry - (
+            risk * 2
+        )
+
+    # =========================================================
+    # NEUTRAL
+    # =========================================================
+
+    else:
+
+        return {
+            "direction": "Neutral",
+            "entry": round(price, 2),
+            "stop_loss": None,
+            "take_profit": None,
+            "risk_reward": None,
+        }
+
+    risk_reward = (
+        abs(take_profit - entry)
+        / abs(entry - stop_loss)
+    )
+
+    return {
+        "direction": direction,
+        "entry": round(entry, 2),
+        "stop_loss": round(stop_loss, 2),
+        "take_profit": round(take_profit, 2),
+        "risk_reward": round(
+            risk_reward,
+            2,
+        ),
+    }
+
+
 def market_scan():
 
     results = []
@@ -53,6 +155,7 @@ def market_scan():
             adx = indicators.get("ADX")
             ema20 = indicators.get("EMA20")
             sma50 = indicators.get("SMA50")
+            atr = indicators.get("ATR")
 
             # RSI
             if rsi is not None:
@@ -118,6 +221,10 @@ def market_scan():
                 ),
             )
 
+            # =====================================================
+            # OPPORTUNITY LABEL
+            # =====================================================
+
             if opportunity_score >= 90:
                 opportunity_label = "Excellent"
 
@@ -134,6 +241,20 @@ def market_scan():
                 opportunity_label = "Avoid"
 
             # =====================================================
+            # TRADING SETUP
+            # =====================================================
+
+            price = float(
+                analysis["price"]
+            )
+
+            trading_setup = calculate_trading_setup(
+                price=price,
+                atr=atr,
+                trend=trend,
+            )
+
+            # =====================================================
             # RESULTADO
             # =====================================================
 
@@ -142,7 +263,7 @@ def market_scan():
                     "symbol": symbol,
 
                     "price": round(
-                        float(analysis["price"]),
+                        price,
                         2,
                     ),
 
@@ -187,6 +308,11 @@ def market_scan():
                         2,
                     ),
 
+                    "atr": round(
+                        float(atr),
+                        4,
+                    ) if atr is not None else None,
+
                     # =============================================
                     # OPPORTUNITY
                     # =============================================
@@ -194,6 +320,30 @@ def market_scan():
                     "opportunity_score": opportunity_score,
 
                     "opportunity_label": opportunity_label,
+
+                    # =============================================
+                    # TRADING SETUP
+                    # =============================================
+
+                    "direction": trading_setup[
+                        "direction"
+                    ],
+
+                    "entry": trading_setup[
+                        "entry"
+                    ],
+
+                    "stop_loss": trading_setup[
+                        "stop_loss"
+                    ],
+
+                    "take_profit": trading_setup[
+                        "take_profit"
+                    ],
+
+                    "risk_reward": trading_setup[
+                        "risk_reward"
+                    ],
                 }
             )
 
