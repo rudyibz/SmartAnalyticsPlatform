@@ -7,6 +7,7 @@ from app.models.user_watchlist import UserWatchlist
 from app.models.portfolio import Portfolio
 from app.models.alert import Alert
 from app.models.trading_setup import TradingSetup
+from app.models.trading_setup_event import TradingSetupEvent
 
 
 def init_database():
@@ -19,3 +20,4 @@ def init_database():
     Base.metadata.create_all(bind=engine)
 
     print("Base de datos inicializada correctamente.")
+

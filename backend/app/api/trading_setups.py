@@ -11,7 +11,7 @@ from app.services.trading_setup_service import (
     get_performance_by_symbol,
 )
 from app.services.trading_setup_monitor import evaluate_active_setups
-
+from app.models.trading_setup_event import TradingSetupEvent
 
 router = APIRouter(
     prefix="/trading-setups",
@@ -67,3 +67,20 @@ def trading_setup_performance_by_symbol(
     db: Session = Depends(get_db),
 ):
     return get_performance_by_symbol(db)
+# ============================================================
+# TRADING SETUP EVENTS
+# ============================================================
+
+@router.get("/events")
+def get_trading_setup_events(
+    db: Session = Depends(get_db),
+):
+    events = (
+        db.query(TradingSetupEvent)
+        .order_by(
+            TradingSetupEvent.created_at.desc()
+        )
+        .all()
+    )
+
+    return events

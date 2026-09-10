@@ -907,4 +907,15 @@ export async function getTradingSetupPerformanceBySymbol() {
         "Performance by symbol error"
     );
 }
+export async function getTradingSetupEvents() {
+    const response =
+        await authenticatedFetch(
+            `${API_BASE_URL}/trading-setups/events`
+        );
+
+    return parseResponse(
+        response,
+        "Trading setup events error"
+    );
+}
 

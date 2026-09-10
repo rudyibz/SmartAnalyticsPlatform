@@ -1,472 +1,1194 @@
-
-import { useEffect, useState } from "react";
 import {
+    useCallback,
+    useEffect,
+    useState,
+} from "react";
+
+import {
+    getTradingSetups,
     getTradingSetupHistory,
     closeTradingSetup,
+    getTradingSetupEvents,
 } from "../services/api";
+
 
 export default function TradingSetups() {
 
     const [setups, setSetups] = useState([]);
+    const [history, setHistory] = useState([]);
+    const [events, setEvents] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const stats = {
-        total: setups.length,
+    const [closingId, setClosingId] = useState(null);
 
-        active: setups.filter(
-            (setup) => setup.status === "ACTIVE"
-        ).length,
 
-        hitEntry: setups.filter(
-            (setup) => setup.status === "HIT_ENTRY"
-        ).length,
+    // ============================================================
+    // LOAD DATA
+    // ============================================================
 
-        hitTP: setups.filter(
-            (setup) => setup.status === "HIT_TP"
-        ).length,
+    const loadData = useCallback(
+        async () => {
 
-        hitSL: setups.filter(
-            (setup) => setup.status === "HIT_SL"
-        ).length,
-
-        closed: setups.filter(
-            (setup) => setup.status === "CLOSED"
-        ).length,
-
-        wins: setups.filter(
-            (setup) => setup.status === "HIT_TP"
-        ).length,
-
-        losses: setups.filter(
-            (setup) => setup.status === "HIT_SL"
-        ).length,
-    };
-
-    const completedTrades = stats.wins + stats.losses;
-
-    const winRate =
-        completedTrades > 0
-            ? ((stats.wins / completedTrades) * 100).toFixed(1)
-            : "—";
-
-    const realizedPnL = setups.reduce(
-        (total, setup) => {
-            if (
-                setup.realized_pnl !== null &&
-                setup.realized_pnl !== undefined
-            ) {
-                return total + Number(setup.realized_pnl);
-            }
-
-            return total;
-        },
-        0
-    );
-
-    async function loadSetups() {
-        try {
             setLoading(true);
             setError("");
 
-            const data = await getTradingSetupHistory();
+            try {
 
-            setSetups(
-                Array.isArray(data)
-                    ? data
-                    : data?.data || []
+                const [
+                    setupsData,
+                    historyData,
+                    eventsData,
+                ] = await Promise.all([
+                    getTradingSetups(),
+                    getTradingSetupHistory(),
+                    getTradingSetupEvents(),
+                ]);
+
+
+                setSetups(
+                    Array.isArray(setupsData)
+                        ? setupsData
+                        : []
+                );
+
+
+                setHistory(
+                    Array.isArray(historyData)
+                        ? historyData
+                        : []
+                );
+
+
+                setEvents(
+                    Array.isArray(eventsData)
+                        ? eventsData
+                        : []
+                );
+
+            } catch (err) {
+
+                console.error(
+                    "[TRADING SETUPS] Load error:",
+                    err
+                );
+
+                setError(
+                    err?.message ||
+                    "Error cargando trading setups."
+                );
+
+            } finally {
+
+                setLoading(false);
+
+            }
+
+        },
+        []
+    );
+
+
+    useEffect(() => {
+
+        loadData();
+
+        const interval = setInterval(
+            loadData,
+            30000
+        );
+
+        return () => {
+            clearInterval(interval);
+        };
+
+    }, [loadData]);
+
+
+    // ============================================================
+    // CLOSE SETUP
+    // ============================================================
+
+    async function handleCloseSetup(
+        setupId
+    ) {
+
+        if (!setupId) {
+            return;
+        }
+
+        setClosingId(setupId);
+
+        try {
+
+            await closeTradingSetup(
+                setupId
             );
 
+            await loadData();
+
         } catch (err) {
-            console.error(err);
+
+            console.error(
+                "[TRADING SETUPS] Close error:",
+                err
+            );
 
             setError(
                 err?.message ||
-                "No se pudieron cargar los setups."
+                "No se pudo cerrar el setup."
             );
 
         } finally {
-            setLoading(false);
+
+            setClosingId(null);
+
         }
+
     }
 
-    useEffect(() => {
-        loadSetups();
 
-        const interval = setInterval(() => {
-            loadSetups();
-        }, 30000);
+    // ============================================================
+    // SUMMARY
+    // ============================================================
 
-        return () => clearInterval(interval);
-    }, []);
+    const total = setups.length;
 
-    async function handleCloseSetup(setupId) {
-        try {
-            await closeTradingSetup(setupId);
-            await loadSetups();
+    const active = setups.filter(
+        (setup) =>
+            setup.status === "ACTIVE"
+    ).length;
 
-        } catch (err) {
-            console.error(err);
+    const hitEntry = setups.filter(
+        (setup) =>
+            setup.status === "HIT_ENTRY"
+    ).length;
 
-            alert(
-                err?.message ||
-                "No se pudo cerrar el setup."
-            );
+    const hitTp = setups.filter(
+        (setup) =>
+            setup.status === "HIT_TP"
+    ).length;
+
+    const hitSl = setups.filter(
+        (setup) =>
+            setup.status === "HIT_SL"
+    ).length;
+
+    const closed = setups.filter(
+        (setup) =>
+            setup.status === "CLOSED"
+    ).length;
+
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
+    function formatPrice(
+        value
+    ) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return "—";
         }
+
+        const number =
+            Number(value);
+
+        if (!Number.isFinite(number)) {
+            return "—";
+        }
+
+        return `$${number.toFixed(2)}`;
+
     }
+
+
+    function formatPnl(
+        value
+    ) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "—";
+        }
+
+        const number =
+            Number(value);
+
+        if (!Number.isFinite(number)) {
+            return "—";
+        }
+
+        return (
+            <>
+                {number >= 0 ? "+" : ""}
+                ${number.toFixed(2)}
+            </>
+        );
+
+    }
+
+
+    function pnlClass(
+        value
+    ) {
+
+        const number =
+            Number(value || 0);
+
+        return number >= 0
+            ? "equity-positive"
+            : "equity-negative";
+
+    }
+
+
+    function statusClass(
+        status
+    ) {
+
+        switch (status) {
+
+            case "ACTIVE":
+                return "status-badge";
+
+            case "HIT_ENTRY":
+                return "status-badge hit-entry";
+
+            case "HIT_TP":
+                return "status-badge hit-tp";
+
+            case "HIT_SL":
+                return "status-badge hit-sl";
+
+            case "CLOSED":
+                return "status-badge";
+
+            default:
+                return "status-badge";
+
+        }
+
+    }
+
+
+    function eventClass(
+        eventType
+    ) {
+
+        switch (eventType) {
+
+            case "ENTRY":
+                return "status-badge hit-entry";
+
+            case "TAKE_PROFIT":
+                return "status-badge hit-tp";
+
+            case "STOP_LOSS":
+                return "status-badge hit-sl";
+
+            default:
+                return "status-badge";
+
+        }
+
+    }
+
+
+    function formatDate(
+        value
+    ) {
+
+        if (!value) {
+            return "—";
+        }
+
+        const date =
+            new Date(value);
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+            return "—";
+        }
+
+        return date.toLocaleString();
+
+    }
+
+
+    // ============================================================
+    // LOADING
+    // ============================================================
+
+    if (loading) {
+
+        return (
+
+            <main className="scanner-page">
+
+                <div className="scanner-header">
+
+                    <div>
+
+                        <h1>
+                            TRADING SETUPS
+                        </h1>
+
+                        <p>
+                            Gestión y seguimiento automático
+                            de setups de trading
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div className="scanner-empty">
+
+                    Cargando trading setups...
+
+                </div>
+
+            </main>
+
+        );
+
+    }
+
+
+    // ============================================================
+    // ERROR
+    // ============================================================
+
+    if (error) {
+
+        return (
+
+            <main className="scanner-page">
+
+                <div className="scanner-header">
+
+                    <div>
+
+                        <h1>
+                            TRADING SETUPS
+                        </h1>
+
+                        <p className="error-message">
+                            {error}
+                        </p>
+
+                    </div>
+
+
+                    <button
+                        className="scanner-refresh"
+                        onClick={loadData}
+                    >
+                        ↻ Reintentar
+                    </button>
+
+                </div>
+
+            </main>
+
+        );
+
+    }
+
+
+    // ============================================================
+    // RENDER
+    // ============================================================
 
     return (
 
         <main className="scanner-page">
+
+
+            {/* ====================================================
+                HEADER
+            ==================================================== */}
 
             <div className="scanner-header">
 
                 <div>
 
                     <h1>
-                        Trading Setups
+                        TRADING SETUPS
                     </h1>
 
                     <p>
-                        Historial de oportunidades detectadas por el Scanner.
+                        Gestión y seguimiento automático
+                        de setups de trading
                     </p>
 
                 </div>
 
+
                 <button
-                    type="button"
-                    onClick={loadSetups}
-                    disabled={loading}
+                    className="scanner-refresh"
+                    onClick={loadData}
                 >
-                    {loading ? "Cargando..." : "Actualizar"}
+                    ↻ Actualizar
                 </button>
 
             </div>
 
-            {error && (
-                <div className="scanner-error">
-                    {error}
-                </div>
-            )}
 
-            {!loading && !error && setups.length > 0 && (
+            {/* ====================================================
+                SUMMARY
+            ==================================================== */}
 
-                <div className="scanner-summary">
+            <div className="scanner-summary">
 
-                    <div className="scanner-summary-card">
-                        <span>TOTAL</span>
-                        <strong>{stats.total}</strong>
-                    </div>
 
-                    <div className="scanner-summary-card">
-                        <span>ACTIVE</span>
-                        <strong>{stats.active}</strong>
-                    </div>
+                <div className="scanner-summary-card">
 
-                    <div className="scanner-summary-card">
-                        <span>HIT ENTRY</span>
-                        <strong>{stats.hitEntry}</strong>
-                    </div>
+                    <span>
+                        TOTAL
+                    </span>
 
-                    <div className="scanner-summary-card">
-                        <span>TAKE PROFIT</span>
-                        <strong>{stats.hitTP}</strong>
-                    </div>
-
-                    <div className="scanner-summary-card">
-                        <span>STOP LOSS</span>
-                        <strong>{stats.hitSL}</strong>
-                    </div>
-
-                    <div className="scanner-summary-card">
-                        <span>CLOSED</span>
-                        <strong>{stats.closed}</strong>
-                    </div>
-
-                    <div className="scanner-summary-card">
-                        <span>WIN RATE</span>
-                        <strong>
-                            {winRate === "—"
-                                ? "—"
-                                : `${winRate}%`}
-                        </strong>
-                    </div>
-
-                    <div className="scanner-summary-card">
-                        <span>REALIZED P/L</span>
-                        <strong
-                            className={
-                                realizedPnL > 0
-                                    ? "positive"
-                                    : realizedPnL < 0
-                                        ? "negative"
-                                        : ""
-                            }
-                        >
-                            {realizedPnL >= 0 ? "+" : ""}
-                            ${realizedPnL.toFixed(2)}
-                        </strong>
-                    </div>
+                    <strong>
+                        {total}
+                    </strong>
 
                 </div>
-            )}
 
-            {!loading && !error && setups.length === 0 && (
 
-                <div className="scanner-empty">
-                    No hay trading setups registrados todavía.
+                <div className="scanner-summary-card">
+
+                    <span>
+                        ACTIVE
+                    </span>
+
+                    <strong>
+                        {active}
+                    </strong>
+
                 </div>
 
-            )}
 
-            {!loading && !error && setups.length > 0 && (
+                <div className="scanner-summary-card">
 
-                <div className="scanner-table-wrapper">
+                    <span>
+                        HIT ENTRY
+                    </span>
 
-                    <table className="scanner-table">
+                    <strong>
+                        {hitEntry}
+                    </strong>
 
-                        <thead>
+                </div>
 
-                            <tr>
 
-                                <th>Symbol</th>
-                                <th>Direction</th>
-                                <th>Quantity</th>
-                                <th>Entry</th>
-                                <th>Stop Loss</th>
-                                <th>Take Profit</th>
-                                <th>P/L TP</th>
-                                <th>P/L SL</th>
-                                <th>Exit</th>
-                                <th>Realized P/L</th>
-                                <th>R/R</th>
-                                <th>ATR</th>
-                                <th>Score</th>
-                                <th>Opportunity</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                <div className="scanner-summary-card">
 
-                            </tr>
+                    <span>
+                        TAKE PROFIT
+                    </span>
 
-                        </thead>
+                    <strong>
+                        {hitTp}
+                    </strong>
 
-                        <tbody>
+                </div>
 
-                            {setups.map((setup) => {
 
-                                const entry = Number(setup.entry || 0);
-                                const stopLoss = Number(setup.stop_loss || 0);
-                                const takeProfit = Number(setup.take_profit || 0);
-                                const quantity = Number(setup.quantity || 1);
+                <div className="scanner-summary-card">
 
-                                const profitPerUnit =
-                                    setup.direction === "LONG"
-                                        ? takeProfit - entry
-                                        : entry - takeProfit;
+                    <span>
+                        STOP LOSS
+                    </span>
 
-                                const lossPerUnit =
-                                    setup.direction === "LONG"
-                                        ? entry - stopLoss
-                                        : stopLoss - entry;
+                    <strong>
+                        {hitSl}
+                    </strong>
 
-                                const profit = profitPerUnit * quantity;
-                                const loss = lossPerUnit * quantity;
+                </div>
 
-                                const realized =
-                                    setup.realized_pnl !== null &&
-                                    setup.realized_pnl !== undefined
-                                        ? Number(setup.realized_pnl)
-                                        : null;
 
-                                return (
+                <div className="scanner-summary-card">
 
-                                    <tr key={setup.id}>
+                    <span>
+                        CLOSED
+                    </span>
 
-                                        <td>
-                                            <strong>
-                                                {setup.symbol}
-                                            </strong>
-                                        </td>
+                    <strong>
+                        {closed}
+                    </strong>
 
-                                        <td>
-                                            {setup.direction === "LONG"
-                                                ? "🟢 LONG"
-                                                : "🔴 SHORT"}
-                                        </td>
+                </div>
 
-                                        <td>
-                                            <strong>
-                                                {quantity}
-                                            </strong>
-                                        </td>
 
-                                        <td>
-                                            ${entry.toFixed(2)}
-                                        </td>
+            </div>
 
-                                        <td>
-                                            ${stopLoss.toFixed(2)}
-                                        </td>
 
-                                        <td>
-                                            ${takeProfit.toFixed(2)}
-                                        </td>
+            {/* ====================================================
+                CURRENT SETUPS
+            ==================================================== */}
 
-                                        <td>
-                                            <strong className="positive">
-                                                +${profit.toFixed(2)}
-                                            </strong>
-                                        </td>
+            <section className="scanner-section">
 
-                                        <td>
-                                            <strong className="negative">
-                                                -${loss.toFixed(2)}
-                                            </strong>
-                                        </td>
 
-                                        <td>
-                                            {setup.exit_price !== null &&
-                                            setup.exit_price !== undefined
-                                                ? `$${Number(
-                                                    setup.exit_price
-                                                ).toFixed(2)}`
-                                                : "-"}
-                                        </td>
+                <div className="scanner-section-header">
 
-                                        <td>
+                    <h2>
+                        CURRENT SETUPS
+                    </h2>
 
-                                            {realized !== null
-                                                ? (
-                                                    <strong
+                </div>
+
+
+                {setups.length === 0 ? (
+
+                    <div className="scanner-empty">
+
+                        No hay trading setups registrados.
+
+                    </div>
+
+                ) : (
+
+                    <div className="scanner-table-wrapper">
+
+                        <table className="scanner-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        ID
+                                    </th>
+
+                                    <th>
+                                        SYMBOL
+                                    </th>
+
+                                    <th>
+                                        DIRECTION
+                                    </th>
+
+                                    <th>
+                                        ENTRY
+                                    </th>
+
+                                    <th>
+                                        STOP LOSS
+                                    </th>
+
+                                    <th>
+                                        TAKE PROFIT
+                                    </th>
+
+                                    <th>
+                                        QUANTITY
+                                    </th>
+
+                                    <th>
+                                        R/R
+                                    </th>
+
+                                    <th>
+                                        STATUS
+                                    </th>
+
+                                    <th>
+                                        P/L
+                                    </th>
+
+                                    <th>
+                                        ACTION
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {setups.map(
+                                    (setup) => {
+
+                                        const pnl =
+                                            Number(
+                                                setup.realized_pnl || 0
+                                            );
+
+
+                                        return (
+
+                                            <tr
+                                                key={setup.id}
+                                            >
+
+                                                <td>
+                                                    #{setup.id}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <strong>
+                                                        {setup.symbol}
+                                                    </strong>
+
+                                                </td>
+
+
+                                                <td>
+                                                    {setup.direction}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        setup.entry
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        setup.stop_loss
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        setup.take_profit
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {setup.quantity}
+                                                </td>
+
+
+                                                <td>
+                                                    {setup.risk_reward !==
+                                                    null &&
+                                                    setup.risk_reward !==
+                                                    undefined
+                                                        ? `1:${Number(
+                                                              setup.risk_reward
+                                                          ).toFixed(2)}`
+                                                        : "—"}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
                                                         className={
-                                                            realized > 0
-                                                                ? "positive"
-                                                                : realized < 0
-                                                                    ? "negative"
-                                                                    : ""
+                                                            statusClass(
+                                                                setup.status
+                                                            )
                                                         }
                                                     >
-                                                        {realized >= 0 ? "+" : ""}
-                                                        ${realized.toFixed(2)}
-                                                    </strong>
-                                                )
-                                                : "-"}
+                                                        {setup.status}
+                                                    </span>
 
-                                        </td>
+                                                </td>
 
-                                        <td>
-                                            {setup.risk_reward !== null &&
-                                            setup.risk_reward !== undefined
-                                                ? `1 : ${Number(
-                                                    setup.risk_reward
-                                                ).toFixed(2)}`
-                                                : "-"}
-                                        </td>
 
-                                        <td>
-                                            <strong>
-                                                {setup.atr !== null &&
-                                                setup.atr !== undefined
-                                                    ? Number(
-                                                        setup.atr
-                                                    ).toFixed(4)
-                                                    : "-"}
-                                            </strong>
-                                        </td>
+                                                <td>
 
-                                        <td>
-                                            <strong>
-                                                {setup.opportunity_score !== null &&
-                                                setup.opportunity_score !== undefined
-                                                    ? Number(
-                                                        setup.opportunity_score
-                                                    ).toFixed(0)
-                                                    : "-"}
-                                            </strong>
-                                        </td>
-
-                                        <td>
-                                            <strong>
-                                                {setup.opportunity_label || "-"}
-                                            </strong>
-                                        </td>
-
-                                        <td>
-
-                                            <span
-                                                className={`setup-status ${String(
-                                                    setup.status || ""
-                                                ).toLowerCase()}`}
-                                            >
-                                                {setup.status}
-                                            </span>
-
-                                        </td>
-
-                                        <td>
-                                            {setup.created_at
-                                                ? new Date(
-                                                    setup.created_at
-                                                ).toLocaleString()
-                                                : "-"}
-                                        </td>
-
-                                        <td>
-
-                                            {setup.status === "ACTIVE" && (
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleCloseSetup(
-                                                            setup.id
+                                                    {setup.realized_pnl ===
+                                                        null ||
+                                                    setup.realized_pnl ===
+                                                        undefined
+                                                        ? (
+                                                            "—"
                                                         )
-                                                    }
-                                                >
-                                                    Cerrar
-                                                </button>
+                                                        : (
+                                                            <strong
+                                                                className={
+                                                                    pnlClass(
+                                                                        pnl
+                                                                    )
+                                                                }
+                                                            >
+                                                                {formatPnl(
+                                                                    pnl
+                                                                )}
+                                                            </strong>
+                                                        )}
 
-                                            )}
+                                                </td>
 
-                                            {setup.status === "HIT_ENTRY" && (
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleCloseSetup(
+                                                <td>
+
+                                                    {(
+                                                        setup.status ===
+                                                            "ACTIVE" ||
+                                                        setup.status ===
+                                                            "HIT_ENTRY"
+                                                    ) ? (
+
+                                                        <button
+                                                            className="scanner-refresh"
+                                                            disabled={
+                                                                closingId ===
+                                                                setup.id
+                                                            }
+                                                            onClick={() =>
+                                                                handleCloseSetup(
+                                                                    setup.id
+                                                                )
+                                                            }
+                                                        >
+
+                                                            {closingId ===
                                                             setup.id
-                                                        )
-                                                    }
-                                                >
-                                                    Cerrar
-                                                </button>
+                                                                ? "Cerrando..."
+                                                                : "Cerrar"}
 
-                                            )}
+                                                        </button>
 
-                                            {setup.status !== "ACTIVE" &&
-                                            setup.status !== "HIT_ENTRY" && (
-                                                "-"
-                                            )}
+                                                    ) : (
 
-                                        </td>
+                                                        "—"
 
-                                    </tr>
+                                                    )}
 
-                                );
+                                                </td>
 
-                            })}
+                                            </tr>
 
-                        </tbody>
+                                        );
 
-                    </table>
+                                    }
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                )}
+
+            </section>
+
+
+            {/* ====================================================
+                SETUP EVENTS
+            ==================================================== */}
+
+            <section className="scanner-section">
+
+
+                <div className="scanner-section-header">
+
+                    <h2>
+                        SETUP EVENTS
+                    </h2>
 
                 </div>
 
-            )}
+
+                <div
+                    className="scanner-section-subtitle"
+                    style={{
+                        marginBottom: "20px",
+                        opacity: 0.7,
+                    }}
+                >
+                    Eventos generados automáticamente por el monitor.
+                </div>
+
+
+                {events.length === 0 ? (
+
+                    <div className="scanner-empty">
+
+                        No hay eventos de trading registrados.
+
+                    </div>
+
+                ) : (
+
+                    <div className="scanner-table-wrapper">
+
+                        <table className="scanner-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        ID
+                                    </th>
+
+                                    <th>
+                                        SETUP
+                                    </th>
+
+                                    <th>
+                                        SYMBOL
+                                    </th>
+
+                                    <th>
+                                        EVENT
+                                    </th>
+
+                                    <th>
+                                        DIRECTION
+                                    </th>
+
+                                    <th>
+                                        PRICE
+                                    </th>
+
+                                    <th>
+                                        QUANTITY
+                                    </th>
+
+                                    <th>
+                                        P/L
+                                    </th>
+
+                                    <th>
+                                        DATE
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {events.map(
+                                    (event) => {
+
+                                        const pnl =
+                                            Number(
+                                                event.realized_pnl || 0
+                                            );
+
+
+                                        return (
+
+                                            <tr
+                                                key={event.id}
+                                            >
+
+                                                <td>
+                                                    #{event.id}
+                                                </td>
+
+
+                                                <td>
+                                                    #{event.setup_id}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <strong>
+                                                        {event.symbol}
+                                                    </strong>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            eventClass(
+                                                                event.event_type
+                                                            )
+                                                        }
+                                                    >
+                                                        {event.event_type}
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+                                                    {event.direction}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        event.price
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {event.quantity}
+                                                </td>
+
+
+                                                <td>
+
+                                                    {event.realized_pnl ===
+                                                        null ||
+                                                    event.realized_pnl ===
+                                                        undefined
+                                                        ? (
+                                                            "—"
+                                                        )
+                                                        : (
+                                                            <strong
+                                                                className={
+                                                                    pnlClass(
+                                                                        pnl
+                                                                    )
+                                                                }
+                                                            >
+                                                                {formatPnl(
+                                                                    pnl
+                                                                )}
+                                                            </strong>
+                                                        )}
+
+                                                </td>
+
+
+                                                <td>
+                                                    {formatDate(
+                                                        event.created_at
+                                                    )}
+                                                </td>
+
+                                            </tr>
+
+                                        );
+
+                                    }
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                )}
+
+            </section>
+
+
+            {/* ====================================================
+                HISTORY
+            ==================================================== */}
+
+            <section className="scanner-section">
+
+
+                <div className="scanner-section-header">
+
+                    <h2>
+                        SETUP HISTORY
+                    </h2>
+
+                </div>
+
+
+                {history.length === 0 ? (
+
+                    <div className="scanner-empty">
+
+                        No hay histórico de trading setups.
+
+                    </div>
+
+                ) : (
+
+                    <div className="scanner-table-wrapper">
+
+                        <table className="scanner-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        ID
+                                    </th>
+
+                                    <th>
+                                        SYMBOL
+                                    </th>
+
+                                    <th>
+                                        DIRECTION
+                                    </th>
+
+                                    <th>
+                                        ENTRY
+                                    </th>
+
+                                    <th>
+                                        EXIT
+                                    </th>
+
+                                    <th>
+                                        QUANTITY
+                                    </th>
+
+                                    <th>
+                                        STATUS
+                                    </th>
+
+                                    <th>
+                                        REALIZED P/L
+                                    </th>
+
+                                    <th>
+                                        CLOSED
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {history.map(
+                                    (setup) => {
+
+                                        const pnl =
+                                            Number(
+                                                setup.realized_pnl || 0
+                                            );
+
+
+                                        return (
+
+                                            <tr
+                                                key={setup.id}
+                                            >
+
+                                                <td>
+                                                    #{setup.id}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <strong>
+                                                        {setup.symbol}
+                                                    </strong>
+
+                                                </td>
+
+
+                                                <td>
+                                                    {setup.direction}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        setup.entry
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {formatPrice(
+                                                        setup.exit_price
+                                                    )}
+                                                </td>
+
+
+                                                <td>
+                                                    {setup.quantity}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            statusClass(
+                                                                setup.status
+                                                            )
+                                                        }
+                                                    >
+                                                        {setup.status}
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    {setup.realized_pnl ===
+                                                        null ||
+                                                    setup.realized_pnl ===
+                                                        undefined
+                                                        ? (
+                                                            "—"
+                                                        )
+                                                        : (
+                                                            <strong
+                                                                className={
+                                                                    pnlClass(
+                                                                        pnl
+                                                                    )
+                                                                }
+                                                            >
+                                                                {formatPnl(
+                                                                    pnl
+                                                                )}
+                                                            </strong>
+                                                        )}
+
+                                                </td>
+
+
+                                                <td>
+                                                    {formatDate(
+                                                        setup.closed_at
+                                                    )}
+                                                </td>
+
+                                            </tr>
+
+                                        );
+
+                                    }
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                )}
+
+            </section>
+
 
         </main>
 
     );
-    
 }

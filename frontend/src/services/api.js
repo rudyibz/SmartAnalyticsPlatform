@@ -58,4 +58,5 @@ export {
     closeTradingSetup,
     getTradingSetupPerformance,
     getTradingSetupPerformanceBySymbol,
+    getTradingSetupEvents,
 } from "../api/api";
