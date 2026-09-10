@@ -25,7 +25,9 @@ from app.db.database import SessionLocal
 from app.services.trading_setup_monitor import evaluate_active_setups
 from app.services.trading_setup_scheduler import trading_setup_monitor
 from app.websocket.market_ws import router as websocket_router
-
+from app.websocket.trading_setup_ws import (
+    router as trading_setup_ws_router,
+)
 from app.api.users import router as users_router
 from app.api.auth import router as auth_router
 from app.api.market import router as market_router
@@ -238,6 +240,9 @@ app.include_router(
 
 app.include_router(
     websocket_router,
+)
+app.include_router(
+    trading_setup_ws_router
 )
 
 

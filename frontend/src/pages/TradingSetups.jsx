@@ -22,6 +22,7 @@ export default function TradingSetups() {
     const [error, setError] = useState("");
 
     const [closingId, setClosingId] = useState(null);
+    const [wsConnected, setWsConnected] = useState(false);
 
 
     // ============================================================
@@ -30,9 +31,6 @@ export default function TradingSetups() {
 
     const loadData = useCallback(
         async () => {
-
-            setLoading(true);
-            setError("");
 
             try {
 
@@ -46,13 +44,11 @@ export default function TradingSetups() {
                     getTradingSetupEvents(),
                 ]);
 
-
                 setSetups(
                     Array.isArray(setupsData)
                         ? setupsData
                         : []
                 );
-
 
                 setHistory(
                     Array.isArray(historyData)
@@ -60,12 +56,13 @@ export default function TradingSetups() {
                         : []
                 );
 
-
                 setEvents(
                     Array.isArray(eventsData)
                         ? eventsData
                         : []
                 );
+
+                setError("");
 
             } catch (err) {
 
@@ -90,17 +87,228 @@ export default function TradingSetups() {
     );
 
 
+    // ============================================================
+    // INITIAL LOAD
+    // ============================================================
+
     useEffect(() => {
 
         loadData();
 
-        const interval = setInterval(
-            loadData,
-            30000
-        );
+    }, [loadData]);
+
+
+    // ============================================================
+    // WEBSOCKET
+    // ============================================================
+
+    useEffect(() => {
+
+        let websocket = null;
+        let reconnectTimer = null;
+        let mounted = true;
+
+
+        function connectWebSocket() {
+
+            if (!mounted) {
+                return;
+            }
+
+
+            const protocol =
+                window.location.protocol === "https:"
+                    ? "wss:"
+                    : "ws:";
+
+
+            const host =
+                window.location.hostname ||
+                "localhost";
+
+
+            websocket = new WebSocket(
+                `${protocol}//${host}:8010/ws/trading-setups`
+            );
+
+
+            websocket.onopen = () => {
+
+                console.log(
+                    "[WS SETUPS] Conectado"
+                );
+
+                if (mounted) {
+                    setWsConnected(true);
+                }
+
+            };
+
+
+            websocket.onmessage = (
+                message
+            ) => {
+
+                try {
+
+                    const data =
+                        JSON.parse(
+                            message.data
+                        );
+
+
+                    if (
+                        data.type !==
+                        "TRADING_SETUP_UPDATE"
+                    ) {
+                        return;
+                    }
+
+
+                    if (
+                        Array.isArray(
+                            data.setups
+                        )
+                    ) {
+
+                        setSetups(
+                            data.setups
+                        );
+
+                    }
+
+
+                    if (
+                        Array.isArray(
+                            data.events
+                        ) &&
+                        data.events.length > 0
+                    ) {
+
+                        setEvents(
+                            (previous) => {
+
+                                const map =
+                                    new Map();
+
+
+                                previous.forEach(
+                                    (event) => {
+
+                                        map.set(
+                                            event.id,
+                                            event
+                                        );
+
+                                    }
+                                );
+
+
+                                data.events.forEach(
+                                    (event) => {
+
+                                        map.set(
+                                            event.id,
+                                            event
+                                        );
+
+                                    }
+                                );
+
+
+                                return Array.from(
+                                    map.values()
+                                )
+                                    .sort(
+                                        (
+                                            a,
+                                            b
+                                        ) =>
+                                            new Date(
+                                                b.created_at
+                                            ) -
+                                            new Date(
+                                                a.created_at
+                                            )
+                                    );
+
+                            }
+                        );
+
+
+                        console.log(
+                            "[WS SETUPS] Nuevos eventos:",
+                            data.events
+                        );
+
+                        loadData();
+
+                    }
+
+                } catch (err) {
+
+                    console.error(
+                        "[WS SETUPS] Message error:",
+                        err
+                    );
+
+                }
+
+            };
+
+
+            websocket.onerror = (
+                wsError
+            ) => {
+
+                console.error(
+                    "[WS SETUPS] Error:",
+                    wsError
+                );
+
+            };
+
+
+            websocket.onclose = () => {
+
+                console.log(
+                    "[WS SETUPS] Desconectado"
+                );
+
+                if (mounted) {
+                    setWsConnected(false);
+                }
+
+
+                reconnectTimer =
+                    setTimeout(
+                        connectWebSocket,
+                        5000
+                    );
+
+            };
+
+        }
+
+
+        connectWebSocket();
+
 
         return () => {
-            clearInterval(interval);
+
+            mounted = false;
+
+            if (reconnectTimer) {
+                clearTimeout(
+                    reconnectTimer
+                );
+            }
+
+
+            if (websocket) {
+                websocket.close();
+            }
+
         };
 
     }, [loadData]);
@@ -153,32 +361,43 @@ export default function TradingSetups() {
     // SUMMARY
     // ============================================================
 
-    const total = setups.length;
+    const total =
+        setups.length;
 
-    const active = setups.filter(
-        (setup) =>
-            setup.status === "ACTIVE"
-    ).length;
 
-    const hitEntry = setups.filter(
-        (setup) =>
-            setup.status === "HIT_ENTRY"
-    ).length;
+    const active =
+        setups.filter(
+            (setup) =>
+                setup.status === "ACTIVE"
+        ).length;
 
-    const hitTp = setups.filter(
-        (setup) =>
-            setup.status === "HIT_TP"
-    ).length;
 
-    const hitSl = setups.filter(
-        (setup) =>
-            setup.status === "HIT_SL"
-    ).length;
+    const hitEntry =
+        setups.filter(
+            (setup) =>
+                setup.status === "HIT_ENTRY"
+        ).length;
 
-    const closed = setups.filter(
-        (setup) =>
-            setup.status === "CLOSED"
-    ).length;
+
+    const hitTp =
+        setups.filter(
+            (setup) =>
+                setup.status === "HIT_TP"
+        ).length;
+
+
+    const hitSl =
+        setups.filter(
+            (setup) =>
+                setup.status === "HIT_SL"
+        ).length;
+
+
+    const closed =
+        setups.filter(
+            (setup) =>
+                setup.status === "CLOSED"
+        ).length;
 
 
     // ============================================================
@@ -438,12 +657,35 @@ export default function TradingSetups() {
                 </div>
 
 
-                <button
-                    className="scanner-refresh"
-                    onClick={loadData}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                    }}
                 >
-                    ↻ Actualizar
-                </button>
+
+                    <span
+                        className={
+                            wsConnected
+                                ? "status-badge hit-entry"
+                                : "status-badge"
+                        }
+                    >
+                        {wsConnected
+                            ? "● LIVE"
+                            : "○ OFFLINE"}
+                    </span>
+
+
+                    <button
+                        className="scanner-refresh"
+                        onClick={loadData}
+                    >
+                        ↻ Actualizar
+                    </button>
+
+                </div>
 
             </div>
 
@@ -454,84 +696,35 @@ export default function TradingSetups() {
 
             <div className="scanner-summary">
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        TOTAL
-                    </span>
-
-                    <strong>
-                        {total}
-                    </strong>
-
+                    <span>TOTAL</span>
+                    <strong>{total}</strong>
                 </div>
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        ACTIVE
-                    </span>
-
-                    <strong>
-                        {active}
-                    </strong>
-
+                    <span>ACTIVE</span>
+                    <strong>{active}</strong>
                 </div>
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        HIT ENTRY
-                    </span>
-
-                    <strong>
-                        {hitEntry}
-                    </strong>
-
+                    <span>HIT ENTRY</span>
+                    <strong>{hitEntry}</strong>
                 </div>
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        TAKE PROFIT
-                    </span>
-
-                    <strong>
-                        {hitTp}
-                    </strong>
-
+                    <span>TAKE PROFIT</span>
+                    <strong>{hitTp}</strong>
                 </div>
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        STOP LOSS
-                    </span>
-
-                    <strong>
-                        {hitSl}
-                    </strong>
-
+                    <span>STOP LOSS</span>
+                    <strong>{hitSl}</strong>
                 </div>
 
-
                 <div className="scanner-summary-card">
-
-                    <span>
-                        CLOSED
-                    </span>
-
-                    <strong>
-                        {closed}
-                    </strong>
-
+                    <span>CLOSED</span>
+                    <strong>{closed}</strong>
                 </div>
-
 
             </div>
 
@@ -541,7 +734,6 @@ export default function TradingSetups() {
             ==================================================== */}
 
             <section className="scanner-section">
-
 
                 <div className="scanner-section-header">
 
@@ -570,49 +762,17 @@ export default function TradingSetups() {
 
                                 <tr>
 
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        SYMBOL
-                                    </th>
-
-                                    <th>
-                                        DIRECTION
-                                    </th>
-
-                                    <th>
-                                        ENTRY
-                                    </th>
-
-                                    <th>
-                                        STOP LOSS
-                                    </th>
-
-                                    <th>
-                                        TAKE PROFIT
-                                    </th>
-
-                                    <th>
-                                        QUANTITY
-                                    </th>
-
-                                    <th>
-                                        R/R
-                                    </th>
-
-                                    <th>
-                                        STATUS
-                                    </th>
-
-                                    <th>
-                                        P/L
-                                    </th>
-
-                                    <th>
-                                        ACTION
-                                    </th>
+                                    <th>ID</th>
+                                    <th>SYMBOL</th>
+                                    <th>DIRECTION</th>
+                                    <th>ENTRY</th>
+                                    <th>STOP LOSS</th>
+                                    <th>TAKE PROFIT</th>
+                                    <th>QUANTITY</th>
+                                    <th>R/R</th>
+                                    <th>STATUS</th>
+                                    <th>P/L</th>
+                                    <th>ACTION</th>
 
                                 </tr>
 
@@ -640,20 +800,15 @@ export default function TradingSetups() {
                                                     #{setup.id}
                                                 </td>
 
-
                                                 <td>
-
                                                     <strong>
                                                         {setup.symbol}
                                                     </strong>
-
                                                 </td>
-
 
                                                 <td>
                                                     {setup.direction}
                                                 </td>
-
 
                                                 <td>
                                                     {formatPrice(
@@ -661,13 +816,11 @@ export default function TradingSetups() {
                                                     )}
                                                 </td>
 
-
                                                 <td>
                                                     {formatPrice(
                                                         setup.stop_loss
                                                     )}
                                                 </td>
-
 
                                                 <td>
                                                     {formatPrice(
@@ -675,23 +828,20 @@ export default function TradingSetups() {
                                                     )}
                                                 </td>
 
-
                                                 <td>
                                                     {setup.quantity}
                                                 </td>
 
-
                                                 <td>
                                                     {setup.risk_reward !==
-                                                    null &&
+                                                        null &&
                                                     setup.risk_reward !==
-                                                    undefined
+                                                        undefined
                                                         ? `1:${Number(
                                                               setup.risk_reward
                                                           ).toFixed(2)}`
                                                         : "—"}
                                                 </td>
-
 
                                                 <td>
 
@@ -707,16 +857,13 @@ export default function TradingSetups() {
 
                                                 </td>
 
-
                                                 <td>
 
                                                     {setup.realized_pnl ===
                                                         null ||
                                                     setup.realized_pnl ===
                                                         undefined
-                                                        ? (
-                                                            "—"
-                                                        )
+                                                        ? "—"
                                                         : (
                                                             <strong
                                                                 className={
@@ -732,7 +879,6 @@ export default function TradingSetups() {
                                                         )}
 
                                                 </td>
-
 
                                                 <td>
 
@@ -755,12 +901,10 @@ export default function TradingSetups() {
                                                                 )
                                                             }
                                                         >
-
                                                             {closingId ===
                                                             setup.id
                                                                 ? "Cerrando..."
                                                                 : "Cerrar"}
-
                                                         </button>
 
                                                     ) : (
@@ -795,7 +939,6 @@ export default function TradingSetups() {
 
             <section className="scanner-section">
 
-
                 <div className="scanner-section-header">
 
                     <h2>
@@ -806,7 +949,6 @@ export default function TradingSetups() {
 
 
                 <div
-                    className="scanner-section-subtitle"
                     style={{
                         marginBottom: "20px",
                         opacity: 0.7,
@@ -819,9 +961,7 @@ export default function TradingSetups() {
                 {events.length === 0 ? (
 
                     <div className="scanner-empty">
-
                         No hay eventos de trading registrados.
-
                     </div>
 
                 ) : (
@@ -834,41 +974,15 @@ export default function TradingSetups() {
 
                                 <tr>
 
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        SETUP
-                                    </th>
-
-                                    <th>
-                                        SYMBOL
-                                    </th>
-
-                                    <th>
-                                        EVENT
-                                    </th>
-
-                                    <th>
-                                        DIRECTION
-                                    </th>
-
-                                    <th>
-                                        PRICE
-                                    </th>
-
-                                    <th>
-                                        QUANTITY
-                                    </th>
-
-                                    <th>
-                                        P/L
-                                    </th>
-
-                                    <th>
-                                        DATE
-                                    </th>
+                                    <th>ID</th>
+                                    <th>SETUP</th>
+                                    <th>SYMBOL</th>
+                                    <th>EVENT</th>
+                                    <th>DIRECTION</th>
+                                    <th>PRICE</th>
+                                    <th>QUANTITY</th>
+                                    <th>P/L</th>
+                                    <th>DATE</th>
 
                                 </tr>
 
@@ -896,20 +1010,15 @@ export default function TradingSetups() {
                                                     #{event.id}
                                                 </td>
 
-
                                                 <td>
                                                     #{event.setup_id}
                                                 </td>
 
-
                                                 <td>
-
                                                     <strong>
                                                         {event.symbol}
                                                     </strong>
-
                                                 </td>
-
 
                                                 <td>
 
@@ -925,11 +1034,9 @@ export default function TradingSetups() {
 
                                                 </td>
 
-
                                                 <td>
                                                     {event.direction}
                                                 </td>
-
 
                                                 <td>
                                                     {formatPrice(
@@ -937,11 +1044,9 @@ export default function TradingSetups() {
                                                     )}
                                                 </td>
 
-
                                                 <td>
                                                     {event.quantity}
                                                 </td>
-
 
                                                 <td>
 
@@ -949,9 +1054,7 @@ export default function TradingSetups() {
                                                         null ||
                                                     event.realized_pnl ===
                                                         undefined
-                                                        ? (
-                                                            "—"
-                                                        )
+                                                        ? "—"
                                                         : (
                                                             <strong
                                                                 className={
@@ -967,7 +1070,6 @@ export default function TradingSetups() {
                                                         )}
 
                                                 </td>
-
 
                                                 <td>
                                                     {formatDate(
@@ -999,7 +1101,6 @@ export default function TradingSetups() {
 
             <section className="scanner-section">
 
-
                 <div className="scanner-section-header">
 
                     <h2>
@@ -1027,41 +1128,15 @@ export default function TradingSetups() {
 
                                 <tr>
 
-                                    <th>
-                                        ID
-                                    </th>
-
-                                    <th>
-                                        SYMBOL
-                                    </th>
-
-                                    <th>
-                                        DIRECTION
-                                    </th>
-
-                                    <th>
-                                        ENTRY
-                                    </th>
-
-                                    <th>
-                                        EXIT
-                                    </th>
-
-                                    <th>
-                                        QUANTITY
-                                    </th>
-
-                                    <th>
-                                        STATUS
-                                    </th>
-
-                                    <th>
-                                        REALIZED P/L
-                                    </th>
-
-                                    <th>
-                                        CLOSED
-                                    </th>
+                                    <th>ID</th>
+                                    <th>SYMBOL</th>
+                                    <th>DIRECTION</th>
+                                    <th>ENTRY</th>
+                                    <th>EXIT</th>
+                                    <th>QUANTITY</th>
+                                    <th>STATUS</th>
+                                    <th>REALIZED P/L</th>
+                                    <th>CLOSED</th>
 
                                 </tr>
 
@@ -1089,20 +1164,15 @@ export default function TradingSetups() {
                                                     #{setup.id}
                                                 </td>
 
-
                                                 <td>
-
                                                     <strong>
                                                         {setup.symbol}
                                                     </strong>
-
                                                 </td>
-
 
                                                 <td>
                                                     {setup.direction}
                                                 </td>
-
 
                                                 <td>
                                                     {formatPrice(
@@ -1110,18 +1180,15 @@ export default function TradingSetups() {
                                                     )}
                                                 </td>
 
-
                                                 <td>
                                                     {formatPrice(
                                                         setup.exit_price
                                                     )}
                                                 </td>
 
-
                                                 <td>
                                                     {setup.quantity}
                                                 </td>
-
 
                                                 <td>
 
@@ -1137,16 +1204,13 @@ export default function TradingSetups() {
 
                                                 </td>
 
-
                                                 <td>
 
                                                     {setup.realized_pnl ===
                                                         null ||
                                                     setup.realized_pnl ===
                                                         undefined
-                                                        ? (
-                                                            "—"
-                                                        )
+                                                        ? "—"
                                                         : (
                                                             <strong
                                                                 className={
@@ -1162,7 +1226,6 @@ export default function TradingSetups() {
                                                         )}
 
                                                 </td>
-
 
                                                 <td>
                                                     {formatDate(
@@ -1191,4 +1254,5 @@ export default function TradingSetups() {
         </main>
 
     );
+
 }

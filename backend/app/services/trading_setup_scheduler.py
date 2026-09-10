@@ -1,7 +1,9 @@
 import asyncio
 
 from app.db.database import SessionLocal
-from app.services.trading_setup_monitor import evaluate_active_setups
+from app.services.trading_setup_monitor import (
+    evaluate_active_setups,
+)
 from app.core.logger import logger
 
 
@@ -20,7 +22,9 @@ async def trading_setup_monitor():
 
         try:
 
-            results = evaluate_active_setups(db)
+            results = evaluate_active_setups(
+                db
+            )
 
             if results:
 
@@ -32,11 +36,14 @@ async def trading_setup_monitor():
         except Exception as exc:
 
             logger.error(
-                f"Error en Trading Setup Monitor: {exc}"
+                f"Error en Trading Setup Monitor: "
+                f"{exc}"
             )
 
         finally:
 
             db.close()
 
-        await asyncio.sleep(MONITOR_INTERVAL)
+        await asyncio.sleep(
+            MONITOR_INTERVAL
+        )
