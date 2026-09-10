@@ -12,6 +12,7 @@ import {
     getAlerts,
     createAlert,
     createTradingSetup,
+    calculateTradingSetupRisk,
 } from "../services/api";
 
 
@@ -30,7 +31,19 @@ export default function Scanner() {
     const [opportunityFilter, setOpportunityFilter] = useState("all");
     const [sortBy, setSortBy] = useState("opportunity_score");
     const [sortDirection, setSortDirection] = useState("desc");
+
     const [quantity, setQuantity] = useState(1);
+
+    // =========================================================
+    // RISK MANAGEMENT
+    // =========================================================
+
+    const [capital, setCapital] = useState(10000);
+    const [riskPercent, setRiskPercent] = useState(1);
+
+    const [riskManagement, setRiskManagement] = useState(null);
+    const [riskLoading, setRiskLoading] = useState(false);
+    const [riskError, setRiskError] = useState("");
 
 
     // =========================================================
@@ -165,6 +178,7 @@ export default function Scanner() {
     }, [
         assets,
         search,
+        opportunityFilter,
         sortBy,
         sortDirection,
     ]);
@@ -191,7 +205,10 @@ export default function Scanner() {
     // HELPERS
     // =========================================================
 
-    function formatNumber(value, decimals = 2) {
+    function formatNumber(
+        value,
+        decimals = 2
+    ) {
 
         if (
             value === null ||
@@ -200,7 +217,8 @@ export default function Scanner() {
             return "N/A";
         }
 
-        const number = Number(value);
+        const number =
+            Number(value);
 
         return Number.isNaN(number)
             ? value
@@ -270,7 +288,8 @@ export default function Scanner() {
 
     function getScoreClass(score) {
 
-        const value = Number(score);
+        const value =
+            Number(score);
 
         if (value >= 70) {
             return "score-high";
@@ -284,9 +303,13 @@ export default function Scanner() {
     }
 
 
-    function getIndicatorClass(value, type) {
+    function getIndicatorClass(
+        value,
+        type
+    ) {
 
-        const number = Number(value);
+        const number =
+            Number(value);
 
         if (Number.isNaN(number)) {
             return "";
@@ -387,156 +410,435 @@ export default function Scanner() {
 
         return [...assets].sort(
             (a, b) =>
-                Number(b.opportunity_score || 0) -
-                Number(a.opportunity_score || 0)
+                Number(
+                    b.opportunity_score || 0
+                ) -
+                Number(
+                    a.opportunity_score || 0
+                )
         )[0];
 
     }, [assets]);
 
-    async function createSetupAlert() {
 
-    if (!topOpportunity) {
-        return;
-    }
+    // =========================================================
+    // RESET RISK MANAGEMENT AL CAMBIAR DE ACTIVO
+    // =========================================================
 
-    const direction = topOpportunity.direction;
+    useEffect(() => {
 
-    if (
-        direction !== "LONG" &&
-        direction !== "SHORT"
-    ) {
-        return;
-    }
+        setRiskManagement(null);
+        setRiskError("");
 
-    const symbol =
-        String(topOpportunity.symbol || "")
-            .trim()
-            .toUpperCase();
+    }, [
+        topOpportunity?.symbol,
+        topOpportunity?.entry,
+        topOpportunity?.stop_loss,
+        topOpportunity?.take_profit,
+    ]);
 
-    const entry = Number(topOpportunity.entry);
-    const stopLoss = Number(topOpportunity.stop_loss);
-    const takeProfit = Number(topOpportunity.take_profit);
-    const atr = Number(topOpportunity.atr);
-    const riskReward = Number(topOpportunity.risk_reward);
-    const opportunityScore = Number(
-        topOpportunity.opportunity_score
-    );
-    const opportunityLabel =
-    topOpportunity.opportunity_label;
-    if (
-        !symbol ||
-        !Number.isFinite(entry) ||
-        !Number.isFinite(stopLoss) ||
-        !Number.isFinite(takeProfit)
-    ) {
-        return;
-    }
 
-    const entryOperator =
-        direction === "LONG" ? ">=" : "<=";
+    // =========================================================
+    // CALCULAR RISK MANAGEMENT
+    // =========================================================
 
-    const stopOperator =
-        direction === "LONG" ? "<=" : ">=";
+    async function calculateRisk() {
 
-    const targetOperator =
-        direction === "LONG" ? ">=" : "<=";
+        if (!topOpportunity) {
+            return;
+        }
 
-    const setupData = {
-    symbol,
-    direction,
-    entry,
-    quantity: Number(quantity),
-    stop_loss: stopLoss,
-    take_profit: takeProfit,
-    atr,
-    risk_reward: riskReward,
-    opportunity_score: opportunityScore,
-    opportunity_label: opportunityLabel,
-};
-    try {
-        await createTradingSetup(setupData);
+        const entry =
+            Number(topOpportunity.entry);
 
-        const existingAlerts = await getAlerts();
+        const stopLoss =
+            Number(topOpportunity.stop_loss);
 
-        const alerts = Array.isArray(existingAlerts)
-            ? existingAlerts
-            : existingAlerts?.data || [];
+        const takeProfit =
+            Number(topOpportunity.take_profit);
 
-        const setupAlerts = [
-            {
-                operator: entryOperator,
-                target_value: entry,
-            },
-            {
-                operator: stopOperator,
-                target_value: stopLoss,
-            },
-            {
-                operator: targetOperator,
-                target_value: takeProfit,
-            },
-        ];
+        const capitalValue =
+            Number(capital);
 
-        let created = 0;
+        const riskValue =
+            Number(riskPercent);
 
-        for (const setup of setupAlerts) {
 
-            const duplicate = alerts.some(alertItem =>
-                String(alertItem.symbol || "")
-                    .trim()
-                    .toUpperCase() === symbol &&
-                String(alertItem.indicator || "").toUpperCase() === "PRICE" &&
-                String(alertItem.operator || "") === setup.operator &&
-                Number(alertItem.target_value) === setup.target_value &&
-                alertItem.is_active !== false
+        if (
+            !Number.isFinite(entry) ||
+            !Number.isFinite(stopLoss) ||
+            !Number.isFinite(takeProfit)
+        ) {
+
+            setRiskError(
+                "El setup no tiene niveles válidos."
             );
 
-            if (duplicate) {
-                continue;
+            return;
+        }
+
+
+        if (
+            !Number.isFinite(capitalValue) ||
+            capitalValue <= 0
+        ) {
+
+            setRiskError(
+                "El capital debe ser mayor que 0."
+            );
+
+            return;
+        }
+
+
+        if (
+            !Number.isFinite(riskValue) ||
+            riskValue <= 0 ||
+            riskValue > 100
+        ) {
+
+            setRiskError(
+                "El riesgo debe estar entre 0 y 100%."
+            );
+
+            return;
+        }
+
+
+        setRiskLoading(true);
+        setRiskError("");
+
+
+        try {
+
+            const result =
+                await calculateTradingSetupRisk({
+                    capital: capitalValue,
+                    risk_percent: riskValue,
+                    entry,
+                    stop_loss: stopLoss,
+                    take_profit: takeProfit,
+                });
+
+
+            setRiskManagement(
+                result
+            );
+
+
+            if (
+                result?.recommended_quantity &&
+                Number(
+                    result.recommended_quantity
+                ) > 0
+            ) {
+
+                setQuantity(
+                    Number(
+                        result.recommended_quantity
+                    )
+                );
+
             }
 
-            await createAlert({
-                symbol,
-                indicator: "price",
-                operator: setup.operator,
-                target_value: setup.target_value,
-            });
+        } catch (err) {
 
-            created++;
+            console.error(
+                "[SCANNER] Risk Management error:",
+                err
+            );
+
+            setRiskError(
+                err?.message ||
+                "No se pudo calcular el riesgo."
+            );
+
+            setRiskManagement(null);
+
+        } finally {
+
+            setRiskLoading(false);
+
         }
 
-        if (created === 0) {
-
-            alert(
-                `⚠️ Las 3 alertas del setup de ${symbol} ya existen.`
-            );
-
-        } else if (created < 3) {
-
-            alert(
-                `🔔 ${created} alerta(s) nueva(s) creada(s) para ${symbol}.`
-            );
-
-        } else {
-
-            alert(
-                `🔔 3 alertas creadas para ${symbol}.`
-            );
-        }
-
-    } catch (err) {
-
-        console.error(
-            "[SCANNER] Error creando alertas:",
-            err
-        );
-
-        alert(
-            err?.message ||
-            "No se pudieron crear las alertas."
-        );
     }
-}
+
+
+    // =========================================================
+    // CREAR ALERTAS DEL SETUP
+    // =========================================================
+
+    async function createSetupAlert() {
+
+        if (!topOpportunity) {
+            return;
+        }
+
+        const direction =
+            topOpportunity.direction;
+
+        if (
+            direction !== "LONG" &&
+            direction !== "SHORT"
+        ) {
+            return;
+        }
+
+        const symbol =
+            String(
+                topOpportunity.symbol || ""
+            )
+                .trim()
+                .toUpperCase();
+
+        const entry =
+            Number(
+                topOpportunity.entry
+            );
+
+        const stopLoss =
+            Number(
+                topOpportunity.stop_loss
+            );
+
+        const takeProfit =
+            Number(
+                topOpportunity.take_profit
+            );
+
+        const atr =
+            Number(
+                topOpportunity.atr
+            );
+
+        const riskReward =
+            Number(
+                topOpportunity.risk_reward
+            );
+
+        const opportunityScore =
+            Number(
+                topOpportunity.opportunity_score
+            );
+
+        const opportunityLabel =
+            topOpportunity.opportunity_label;
+
+
+        if (
+            !symbol ||
+            !Number.isFinite(entry) ||
+            !Number.isFinite(stopLoss) ||
+            !Number.isFinite(takeProfit)
+        ) {
+            return;
+        }
+
+
+        const entryOperator =
+            direction === "LONG"
+                ? ">="
+                : "<=";
+
+        const stopOperator =
+            direction === "LONG"
+                ? "<="
+                : ">=";
+
+        const targetOperator =
+            direction === "LONG"
+                ? ">="
+                : "<=";
+
+
+        const setupData = {
+
+            symbol,
+
+            direction,
+
+            entry,
+
+            quantity:
+                Number(quantity),
+
+            stop_loss:
+                stopLoss,
+
+            take_profit:
+                takeProfit,
+
+            atr,
+
+            risk_reward:
+                riskReward,
+
+            opportunity_score:
+                opportunityScore,
+
+            opportunity_label:
+                opportunityLabel,
+
+        };
+
+
+        try {
+
+            await createTradingSetup(
+                setupData
+            );
+
+
+            const existingAlerts =
+                await getAlerts();
+
+
+            const alerts =
+                Array.isArray(
+                    existingAlerts
+                )
+                    ? existingAlerts
+                    : existingAlerts?.data ||
+                      [];
+
+
+            const setupAlerts = [
+
+                {
+                    operator:
+                        entryOperator,
+
+                    target_value:
+                        entry,
+                },
+
+                {
+                    operator:
+                        stopOperator,
+
+                    target_value:
+                        stopLoss,
+                },
+
+                {
+                    operator:
+                        targetOperator,
+
+                    target_value:
+                        takeProfit,
+                },
+
+            ];
+
+
+            let created = 0;
+
+
+            for (
+                const setup
+                of setupAlerts
+            ) {
+
+                const duplicate =
+                    alerts.some(
+                        alertItem =>
+
+                            String(
+                                alertItem.symbol ||
+                                ""
+                            )
+                                .trim()
+                                .toUpperCase() ===
+                                symbol &&
+
+                            String(
+                                alertItem.indicator ||
+                                ""
+                            ).toUpperCase() ===
+                                "PRICE" &&
+
+                            String(
+                                alertItem.operator ||
+                                ""
+                            ) ===
+                                setup.operator &&
+
+                            Number(
+                                alertItem.target_value
+                            ) ===
+                                setup.target_value &&
+
+                            alertItem.is_active !==
+                                false
+                    );
+
+
+                if (duplicate) {
+                    continue;
+                }
+
+
+                await createAlert({
+
+                    symbol,
+
+                    indicator:
+                        "price",
+
+                    operator:
+                        setup.operator,
+
+                    target_value:
+                        setup.target_value,
+
+                });
+
+
+                created++;
+
+            }
+
+
+            if (created === 0) {
+
+                alert(
+                    `⚠️ Las 3 alertas del setup de ${symbol} ya existen.`
+                );
+
+            }
+            else if (created < 3) {
+
+                alert(
+                    `🔔 ${created} alerta(s) nueva(s) creada(s) para ${symbol}.`
+                );
+
+            }
+            else {
+
+                alert(
+                    `🔔 3 alertas creadas para ${symbol}.`
+                );
+
+            }
+
+        }
+        catch (err) {
+
+            console.error(
+                "[SCANNER] Error creando alertas:",
+                err
+            );
+
+            alert(
+                err?.message ||
+                "No se pudieron crear las alertas."
+            );
+
+        }
+
+    }
+
+
     // =========================================================
     // RENDER
     // =========================================================
@@ -544,6 +846,11 @@ export default function Scanner() {
     return (
 
         <main className="scanner-page">
+
+
+            {/* ================================================= */}
+            {/* HEADER */}
+            {/* ================================================= */}
 
             <div className="scanner-header">
 
@@ -580,53 +887,91 @@ export default function Scanner() {
             {/* TOP OPPORTUNITY */}
             {/* ================================================= */}
 
-            {!loading && topOpportunity && (
+            {!loading &&
+                topOpportunity && (
 
-                <div className="scanner-top-opportunity">
+                    <div className="scanner-top-opportunity">
 
-                    <div className="top-opportunity-icon">
-                        ⭐
-                    </div>
+                        <div className="top-opportunity-icon">
+                            ⭐
+                        </div>
 
-                    <div className="top-opportunity-content">
 
-                        <span className="top-opportunity-title">
-                            TOP OPPORTUNITY
-                        </span>
+                        <div className="top-opportunity-content">
 
-                        <div className="top-opportunity-main">
-
-                            <strong>
-                                {topOpportunity.symbol}
-                            </strong>
-
-                            <span className="top-opportunity-score">
-                                {topOpportunity.opportunity_score}
+                            <span className="top-opportunity-title">
+                                TOP OPPORTUNITY
                             </span>
 
-                            <span className="top-opportunity-label">
-                                {topOpportunity.opportunity_label}
-                            </span>
+
+                            <div className="top-opportunity-main">
+
+                                <strong>
+                                    {
+                                        topOpportunity.symbol
+                                    }
+                                </strong>
+
+
+                                <span className="top-opportunity-score">
+                                    {
+                                        topOpportunity.opportunity_score
+                                    }
+                                </span>
+
+
+                                <span className="top-opportunity-label">
+                                    {
+                                        topOpportunity.opportunity_label
+                                    }
+                                </span>
+
+                            </div>
+
+
+                            <div className="top-opportunity-details">
+
+                                AI Score{" "}
+                                {
+                                    topOpportunity.score
+                                }
+
+                                {" · "}
+
+                                RSI{" "}
+                                {
+                                    formatNumber(
+                                        topOpportunity.rsi
+                                    )
+                                }
+
+                                {" · "}
+
+                                ADX{" "}
+                                {
+                                    formatNumber(
+                                        topOpportunity.adx
+                                    )
+                                }
+
+                                {" · "}
+
+                                MACD{" "}
+                                {
+                                    formatNumber(
+                                        topOpportunity.macd,
+                                        4
+                                    )
+                                }
+
+                            </div>
 
                         </div>
 
-                        <div className="top-opportunity-details">
-
-                            AI Score {topOpportunity.score}
-                            {" · "}
-                            RSI {formatNumber(topOpportunity.rsi)}
-                            {" · "}
-                            ADX {formatNumber(topOpportunity.adx)}
-                            {" · "}
-                            MACD {formatNumber(topOpportunity.macd, 4)}
-
-                        </div>
-
                     </div>
 
-                </div>
+                )}
 
-            )}
 
             {/* ================================================= */}
             {/* TRADING SETUP */}
@@ -635,163 +980,546 @@ export default function Scanner() {
             {!loading &&
                 topOpportunity &&
                 topOpportunity.direction &&
-                topOpportunity.direction !== "Neutral" && (
+                topOpportunity.direction !==
+                    "Neutral" && (
 
                     <div className="top-opportunity-trading">
+
 
                         <div className="trading-setup-title">
                             TRADING SETUP
                         </div>
 
+
                         <div className="trading-setup-direction">
 
                             <span
                                 className={`trading-direction ${
-                                    String(topOpportunity.direction).toLowerCase()
+                                    String(
+                                        topOpportunity.direction
+                                    ).toLowerCase()
                                 }`}
                             >
-                                {topOpportunity.direction === "LONG"
+
+                                {topOpportunity.direction ===
+                                "LONG"
                                     ? "🟢 LONG"
                                     : "🔴 SHORT"}
+
                             </span>
 
                         </div>
 
+
+                        {/* =================================================
+                            SETUP LEVELS
+                        ================================================= */}
+
                         <div className="trading-setup-grid">
 
+
                             <div className="trading-setup-item">
-                                <span>ENTRY</span>
+
+                                <span>
+                                    ENTRY
+                                </span>
+
                                 <strong>
-                                    ${formatNumber(topOpportunity.entry, 2)}
+                                    $
+                                    {formatNumber(
+                                        topOpportunity.entry,
+                                        2
+                                    )}
                                 </strong>
+
                             </div>
+
 
                             <div className="trading-setup-item stop">
-                                <span>STOP LOSS</span>
+
+                                <span>
+                                    STOP LOSS
+                                </span>
+
                                 <strong>
-                                    ${formatNumber(topOpportunity.stop_loss, 2)}
+                                    $
+                                    {formatNumber(
+                                        topOpportunity.stop_loss,
+                                        2
+                                    )}
                                 </strong>
+
                             </div>
+
 
                             <div className="trading-setup-item target">
-                                <span>TAKE PROFIT</span>
+
+                                <span>
+                                    TAKE PROFIT
+                                </span>
+
                                 <strong>
-                                    ${formatNumber(topOpportunity.take_profit, 2)}
+                                    $
+                                    {formatNumber(
+                                        topOpportunity.take_profit,
+                                        2
+                                    )}
                                 </strong>
+
                             </div>
 
+
                             <div className="trading-setup-item quantity">
-                                <span>QUANTITY</span>
+
+                                <span>
+                                    QUANTITY
+                                </span>
+
                                 <input
                                     type="number"
                                     min="0.01"
                                     step="0.01"
-                                    value={quantity}
-                                    onChange={(e) => {
-                                        const value = Number(e.target.value);
-                                        setQuantity(
-                                            Number.isFinite(value) && value > 0
-                                                ? value
-                                                : 0.01
-                                        );
-                                    }}
+                                    value={
+                                        quantity
+                                    }
+                                    onChange={
+                                        event => {
+
+                                            const value =
+                                                Number(
+                                                    event.target.value
+                                                );
+
+                                            setQuantity(
+
+                                                Number.isFinite(
+                                                    value
+                                                ) &&
+                                                value > 0
+
+                                                    ? value
+
+                                                    : 0.01
+
+                                            );
+
+                                            setRiskManagement(
+                                                null
+                                            );
+
+                                        }
+                                    }
                                 />
+
                             </div>
+
 
                             <div className="trading-setup-item">
-                                <span>ATR</span>
+
+                                <span>
+                                    ATR
+                                </span>
+
                                 <strong>
-                                    {formatNumber(topOpportunity.atr, 4)}
+                                    {
+                                        formatNumber(
+                                            topOpportunity.atr,
+                                            4
+                                        )
+                                    }
                                 </strong>
-                            </div>
-                            <div className="trading-setup-item rr">
-                                <span>RISK / REWARD</span>
-                                <strong>
-                                    1 : {formatNumber(topOpportunity.risk_reward, 2)}
-                                </strong>
+
                             </div>
 
+
+                            <div className="trading-setup-item rr">
+
+                                <span>
+                                    RISK / REWARD
+                                </span>
+
+                                <strong>
+                                    1 :{" "}
+                                    {formatNumber(
+                                        topOpportunity.risk_reward,
+                                        2
+                                    )}
+                                </strong>
+
+                            </div>
+
+
                         </div>
+
+
+                        {/* =================================================
+                            RISK MANAGEMENT
+                        ================================================= */}
+
+                        <div className="trading-risk-management">
+
+                            <div className="trading-setup-title">
+                                RISK MANAGEMENT
+                            </div>
+
+
+                            <div className="trading-risk-inputs">
+
+
+                                <div className="trading-setup-item">
+
+                                    <span>
+                                        CAPITAL
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="100"
+                                        value={
+                                            capital
+                                        }
+                                        onChange={
+                                            event =>
+                                                setCapital(
+                                                    Number(
+                                                        event.target.value
+                                                    )
+                                                )
+                                        }
+                                    />
+
+                                </div>
+
+
+                                <div className="trading-setup-item">
+
+                                    <span>
+                                        RISK %
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        min="0.01"
+                                        max="100"
+                                        step="0.1"
+                                        value={
+                                            riskPercent
+                                        }
+                                        onChange={
+                                            event =>
+                                                setRiskPercent(
+                                                    Number(
+                                                        event.target.value
+                                                    )
+                                                )
+                                        }
+                                    />
+
+                                </div>
+
+
+                                <div className="trading-risk-action">
+
+                                    <button
+                                        type="button"
+                                        className="trading-alert-button"
+                                        onClick={
+                                            calculateRisk
+                                        }
+                                        disabled={
+                                            riskLoading
+                                        }
+                                    >
+
+                                        {riskLoading
+                                            ? "Calculando..."
+                                            : "🧮 Calcular Riesgo"}
+
+                                    </button>
+
+                                </div>
+
+
+                            </div>
+
+
+                            {riskError && (
+
+                                <div className="scanner-error">
+
+                                    {
+                                        riskError
+                                    }
+
+                                </div>
+
+                            )}
+
+
+                            {riskManagement && (
+
+                                <div className="trading-risk-results">
+
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            RISK AMOUNT
+                                        </span>
+
+                                        <strong>
+                                            $
+                                            {formatNumber(
+                                                riskManagement.risk_amount,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item quantity">
+
+                                        <span>
+                                            RECOMMENDED QTY
+                                        </span>
+
+                                        <strong>
+                                            {
+                                                formatNumber(
+                                                    riskManagement.recommended_quantity,
+                                                    4
+                                                )
+                                            }
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            POSITION VALUE
+                                        </span>
+
+                                        <strong>
+                                            $
+                                            {formatNumber(
+                                                riskManagement.position_value,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item stop">
+
+                                        <span>
+                                            MAX LOSS
+                                        </span>
+
+                                        <strong>
+                                            -$
+                                            {formatNumber(
+                                                riskManagement.max_loss,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item target">
+
+                                        <span>
+                                            POTENTIAL PROFIT
+                                        </span>
+
+                                        <strong>
+                                            +$
+                                            {formatNumber(
+                                                riskManagement.potential_profit,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item rr">
+
+                                        <span>
+                                            ACTUAL R/R
+                                        </span>
+
+                                        <strong>
+                                            1 :
+                                            {
+                                                formatNumber(
+                                                    riskManagement.risk_reward,
+                                                    2
+                                                )
+                                            }
+                                        </strong>
+
+                                    </div>
+
+
+                                </div>
+
+                            )}
+
+
+                        </div>
+
+
+                        {/* =================================================
+                            ACTIONS
+                        ================================================= */}
 
                         <div className="trading-setup-actions">
 
                             <button
                                 type="button"
                                 className="trading-alert-button"
-                                onClick={createSetupAlert}
+                                onClick={
+                                    createSetupAlert
+                                }
                             >
                                 🔔 Crear alertas del Setup
                             </button>
 
                         </div>
 
+
                     </div>
 
                 )}
+
 
             {/* ================================================= */}
             {/* RESUMEN DE OPORTUNIDADES */}
             {/* ================================================= */}
 
-            {!loading && assets.length > 0 && (
+            {!loading &&
+                assets.length > 0 && (
 
-                <div className="scanner-opportunity-summary">
+                    <div className="scanner-opportunity-summary">
 
-                    <div className="scanner-summary-title">
-                        MARKET OPPORTUNITIES
+                        <div className="scanner-summary-title">
+                            MARKET OPPORTUNITIES
+                        </div>
+
+                        <div className="scanner-summary-count">
+                            {assets.length} activos analizados
+                        </div>
+
+
+                        <div className="scanner-summary-grid">
+
+
+                            <div className="summary-item excellent">
+
+                                <span>
+                                    🟢
+                                </span>
+
+                                <strong>
+                                    {
+                                        opportunitySummary.Excellent
+                                    }
+                                </strong>
+
+                                <small>
+                                    Excellent
+                                </small>
+
+                            </div>
+
+
+                            <div className="summary-item strong">
+
+                                <span>
+                                    🟢
+                                </span>
+
+                                <strong>
+                                    {
+                                        opportunitySummary.Strong
+                                    }
+                                </strong>
+
+                                <small>
+                                    Strong
+                                </small>
+
+                            </div>
+
+
+                            <div className="summary-item moderate">
+
+                                <span>
+                                    🟡
+                                </span>
+
+                                <strong>
+                                    {
+                                        opportunitySummary.Moderate
+                                    }
+                                </strong>
+
+                                <small>
+                                    Moderate
+                                </small>
+
+                            </div>
+
+
+                            <div className="summary-item weak">
+
+                                <span>
+                                    🟠
+                                </span>
+
+                                <strong>
+                                    {
+                                        opportunitySummary.Weak
+                                    }
+                                </strong>
+
+                                <small>
+                                    Weak
+                                </small>
+
+                            </div>
+
+
+                            <div className="summary-item avoid">
+
+                                <span>
+                                    🔴
+                                </span>
+
+                                <strong>
+                                    {
+                                        opportunitySummary.Avoid
+                                    }
+                                </strong>
+
+                                <small>
+                                    Avoid
+                                </small>
+
+                            </div>
+
+
+                        </div>
+
                     </div>
 
-                    <div className="scanner-summary-count">
-                        {assets.length} activos analizados
-                    </div>
-
-                    <div className="scanner-summary-grid">
-
-                        <div className="summary-item excellent">
-                            <span>🟢</span>
-                            <strong>
-                                {opportunitySummary.Excellent}
-                            </strong>
-                            <small>Excellent</small>
-                        </div>
-
-                        <div className="summary-item strong">
-                            <span>🟢</span>
-                            <strong>
-                                {opportunitySummary.Strong}
-                            </strong>
-                            <small>Strong</small>
-                        </div>
-
-                        <div className="summary-item moderate">
-                            <span>🟡</span>
-                            <strong>
-                                {opportunitySummary.Moderate}
-                            </strong>
-                            <small>Moderate</small>
-                        </div>
-
-                        <div className="summary-item weak">
-                            <span>🟠</span>
-                            <strong>
-                                {opportunitySummary.Weak}
-                            </strong>
-                            <small>Weak</small>
-                        </div>
-
-                        <div className="summary-item avoid">
-                            <span>🔴</span>
-                            <strong>
-                                {opportunitySummary.Avoid}
-                            </strong>
-                            <small>Avoid</small>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            )}
+                )}
 
 
             {/* ================================================= */}
@@ -806,11 +1534,14 @@ export default function Scanner() {
 
                 <input
                     type="text"
-                    value={search}
-                    onChange={event =>
-                        setSearch(
-                            event.target.value
-                        )
+                    value={
+                        search
+                    }
+                    onChange={
+                        event =>
+                            setSearch(
+                                event.target.value
+                            )
                     }
                     placeholder="Buscar símbolo..."
                 />
@@ -824,6 +1555,7 @@ export default function Scanner() {
 
             <div className="scanner-filters">
 
+
                 <button
                     type="button"
                     className={
@@ -832,11 +1564,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("all")
+                        setOpportunityFilter(
+                            "all"
+                        )
                     }
                 >
                     Todas
                 </button>
+
 
                 <button
                     type="button"
@@ -846,11 +1581,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("excellent")
+                        setOpportunityFilter(
+                            "excellent"
+                        )
                     }
                 >
                     🟢 Excellent
                 </button>
+
 
                 <button
                     type="button"
@@ -860,11 +1598,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("strong")
+                        setOpportunityFilter(
+                            "strong"
+                        )
                     }
                 >
                     🟢 Strong
                 </button>
+
 
                 <button
                     type="button"
@@ -874,11 +1615,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("moderate")
+                        setOpportunityFilter(
+                            "moderate"
+                        )
                     }
                 >
                     🟡 Moderate
                 </button>
+
 
                 <button
                     type="button"
@@ -888,11 +1632,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("weak")
+                        setOpportunityFilter(
+                            "weak"
+                        )
                     }
                 >
                     🟠 Weak
                 </button>
+
 
                 <button
                     type="button"
@@ -902,11 +1649,14 @@ export default function Scanner() {
                             : ""
                     }
                     onClick={() =>
-                        setOpportunityFilter("avoid")
+                        setOpportunityFilter(
+                            "avoid"
+                        )
                     }
                 >
                     🔴 Avoid
                 </button>
+
 
             </div>
 
@@ -992,127 +1742,200 @@ export default function Scanner() {
 
                                     <th
                                         onClick={() =>
-                                            handleSort("symbol")
+                                            handleSort(
+                                                "symbol"
+                                            )
                                         }
                                     >
                                         Symbol{" "}
-                                        {getSortIcon("symbol")}
+                                        {
+                                            getSortIcon(
+                                                "symbol"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("price")
+                                            handleSort(
+                                                "price"
+                                            )
                                         }
                                     >
                                         Price{" "}
-                                        {getSortIcon("price")}
+                                        {
+                                            getSortIcon(
+                                                "price"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("score")
+                                            handleSort(
+                                                "score"
+                                            )
                                         }
                                     >
                                         AI Score{" "}
-                                        {getSortIcon("score")}
+                                        {
+                                            getSortIcon(
+                                                "score"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("signal")
+                                            handleSort(
+                                                "signal"
+                                            )
                                         }
                                     >
                                         Signal{" "}
-                                        {getSortIcon("signal")}
+                                        {
+                                            getSortIcon(
+                                                "signal"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("opportunity_score")
+                                            handleSort(
+                                                "opportunity_score"
+                                            )
                                         }
                                     >
                                         Opportunity{" "}
-                                        {getSortIcon("opportunity_score")}
+                                        {
+                                            getSortIcon(
+                                                "opportunity_score"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("trend")
+                                            handleSort(
+                                                "trend"
+                                            )
                                         }
                                     >
                                         Trend{" "}
-                                        {getSortIcon("trend")}
+                                        {
+                                            getSortIcon(
+                                                "trend"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("rsi")
+                                            handleSort(
+                                                "rsi"
+                                            )
                                         }
                                     >
                                         RSI{" "}
-                                        {getSortIcon("rsi")}
+                                        {
+                                            getSortIcon(
+                                                "rsi"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("macd")
+                                            handleSort(
+                                                "macd"
+                                            )
                                         }
                                     >
                                         MACD{" "}
-                                        {getSortIcon("macd")}
+                                        {
+                                            getSortIcon(
+                                                "macd"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("adx")
+                                            handleSort(
+                                                "adx"
+                                            )
                                         }
                                     >
                                         ADX{" "}
-                                        {getSortIcon("adx")}
+                                        {
+                                            getSortIcon(
+                                                "adx"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("ema20")
+                                            handleSort(
+                                                "ema20"
+                                            )
                                         }
                                     >
                                         EMA20{" "}
-                                        {getSortIcon("ema20")}
+                                        {
+                                            getSortIcon(
+                                                "ema20"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("sma50")
+                                            handleSort(
+                                                "sma50"
+                                            )
                                         }
                                     >
                                         SMA50{" "}
-                                        {getSortIcon("sma50")}
+                                        {
+                                            getSortIcon(
+                                                "sma50"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th
                                         onClick={() =>
-                                            handleSort("risk")
+                                            handleSort(
+                                                "risk"
+                                            )
                                         }
                                     >
                                         Risk{" "}
-                                        {getSortIcon("risk")}
+                                        {
+                                            getSortIcon(
+                                                "risk"
+                                            )
+                                        }
                                     </th>
 
 
                                     <th>
                                         Recommendation
                                     </th>
+
 
                                 </tr>
 
@@ -1121,288 +1944,312 @@ export default function Scanner() {
 
                             <tbody>
 
-                                {filteredAssets.map(
-                                    (asset, index) => (
+                                {
+                                    filteredAssets.map(
+                                        (
+                                            asset,
+                                            index
+                                        ) => (
 
-                                        <tr
-                                            key={
-                                                asset.symbol
-                                            }
-                                            className="scanner-row-clickable"
-                                            onClick={() =>
-                                                openAsset(
+                                            <tr
+                                                key={
                                                     asset.symbol
-                                                )
-                                            }
-                                            title={`Abrir análisis de ${asset.symbol}`}
-                                        >
-
-                                            <td>
-                                                {index + 1}
-                                            </td>
-
-
-                                            <td>
-
-                                                <strong
-                                                    className="scanner-symbol"
-                                                >
-                                                    {
+                                                }
+                                                className="scanner-row-clickable"
+                                                onClick={() =>
+                                                    openAsset(
                                                         asset.symbol
+                                                    )
+                                                }
+                                                title={
+                                                    `Abrir análisis de ${asset.symbol}`
+                                                }
+                                            >
+
+
+                                                <td>
+                                                    {index + 1}
+                                                </td>
+
+
+                                                <td>
+
+                                                    <strong
+                                                        className="scanner-symbol"
+                                                    >
+                                                        {
+                                                            asset.symbol
+                                                        }
+                                                    </strong>
+
+                                                </td>
+
+
+                                                <td>
+                                                    $
+                                                    {
+                                                        formatNumber(
+                                                            asset.price
+                                                        )
                                                     }
-                                                </strong>
-
-                                            </td>
+                                                </td>
 
 
-                                            <td>
-                                                $
-                                                {formatNumber(
-                                                    asset.price
-                                                )}
-                                            </td>
+                                                <td>
 
+                                                    <div className="scanner-score">
 
-                                            <td>
-
-                                                <div className="scanner-score">
-
-                                                    <span
-                                                        className={
-                                                            getScoreClass(
+                                                        <span
+                                                            className={
+                                                                getScoreClass(
+                                                                    asset.score
+                                                                )
+                                                            }
+                                                        >
+                                                            {
                                                                 asset.score
-                                                            )
-                                                        }
-                                                    >
-                                                        {
-                                                            asset.score
-                                                        }
-                                                    </span>
-
-                                                    <div className="score-bar">
-
-                                                        <div
-                                                            className={
-                                                                `score-fill ${
-                                                                    getScoreClass(
-                                                                        asset.score
-                                                                    )
-                                                                }`
                                                             }
-                                                            style={{
-                                                                width:
-                                                                    `${Math.max(
-                                                                        0,
-                                                                        Math.min(
-                                                                            100,
-                                                                            Number(
-                                                                                asset.score
-                                                                            ) || 0
+                                                        </span>
+
+
+                                                        <div className="score-bar">
+
+                                                            <div
+                                                                className={
+                                                                    `score-fill ${
+                                                                        getScoreClass(
+                                                                            asset.score
                                                                         )
-                                                                    )}%`,
-                                                            }}
-                                                        />
+                                                                    }`
+                                                                }
+                                                                style={{
+                                                                    width:
+                                                                        `${Math.max(
+                                                                            0,
+                                                                            Math.min(
+                                                                                100,
+                                                                                Number(
+                                                                                    asset.score
+                                                                                ) || 0
+                                                                            )
+                                                                        )}%`,
+                                                                }}
+                                                            />
+
+                                                        </div>
 
                                                     </div>
 
-                                                </div>
-
-                                            </td>
+                                                </td>
 
 
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        `signal-badge ${
-                                                            getSignalClass(
-                                                                asset.signal
-                                                            )
-                                                        }`
-                                                    }
-                                                >
-                                                    {
-                                                        asset.signal
-                                                    }
-                                                </span>
-
-                                            </td>
-
-
-                                            <td>
-
-                                                <div className="scanner-score">
+                                                <td>
 
                                                     <span
                                                         className={
-                                                            getScoreClass(
+                                                            `signal-badge ${
+                                                                getSignalClass(
+                                                                    asset.signal
+                                                                )
+                                                            }`
+                                                        }
+                                                    >
+                                                        {
+                                                            asset.signal
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <div className="scanner-score">
+
+                                                        <span
+                                                            className={
+                                                                getScoreClass(
+                                                                    asset.opportunity_score
+                                                                )
+                                                            }
+                                                        >
+                                                            {
                                                                 asset.opportunity_score
+                                                            }
+                                                        </span>
+
+
+                                                        <div className="score-bar">
+
+                                                            <div
+                                                                className={
+                                                                    `score-fill ${
+                                                                        getScoreClass(
+                                                                            asset.opportunity_score
+                                                                        )
+                                                                    }`
+                                                                }
+                                                                style={{
+                                                                    width:
+                                                                        `${Math.max(
+                                                                            0,
+                                                                            Math.min(
+                                                                                100,
+                                                                                Number(
+                                                                                    asset.opportunity_score
+                                                                                ) || 0
+                                                                            )
+                                                                        )}%`,
+                                                                }}
+                                                            />
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    <small className="opportunity-label">
+                                                        {
+                                                            asset.opportunity_label
+                                                        }
+                                                    </small>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            `trend-badge ${
+                                                                getTrendClass(
+                                                                    asset.trend
+                                                                )
+                                                            }`
+                                                        }
+                                                    >
+                                                        {
+                                                            asset.trend
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            getIndicatorClass(
+                                                                asset.rsi,
+                                                                "rsi"
                                                             )
                                                         }
                                                     >
                                                         {
-                                                            asset.opportunity_score
+                                                            formatNumber(
+                                                                asset.rsi
+                                                            )
                                                         }
                                                     </span>
 
-                                                    <div className="score-bar">
-
-                                                        <div
-                                                            className={
-                                                                `score-fill ${
-                                                                    getScoreClass(
-                                                                        asset.opportunity_score
-                                                                    )
-                                                                }`
-                                                            }
-                                                            style={{
-                                                                width:
-                                                                    `${Math.max(
-                                                                        0,
-                                                                        Math.min(
-                                                                            100,
-                                                                            Number(
-                                                                                asset.opportunity_score
-                                                                            ) || 0
-                                                                        )
-                                                                    )}%`,
-                                                            }}
-                                                        />
-
-                                                    </div>
-
-                                                </div>
-
-                                                <small className="opportunity-label">
-                                                    {
-                                                        asset.opportunity_label
-                                                    }
-                                                </small>
-
-                                            </td>
+                                                </td>
 
 
-                                            <td>
+                                                <td>
 
-                                                <span
-                                                    className={
-                                                        `trend-badge ${
-                                                            getTrendClass(
-                                                                asset.trend
+                                                    <span
+                                                        className={
+                                                            getIndicatorClass(
+                                                                asset.macd,
+                                                                "macd"
                                                             )
-                                                        }`
-                                                    }
-                                                >
-                                                    {
-                                                        asset.trend
-                                                    }
-                                                </span>
-
-                                            </td>
-
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        getIndicatorClass(
-                                                            asset.rsi,
-                                                            "rsi"
-                                                        )
-                                                    }
-                                                >
-                                                    {formatNumber(
-                                                        asset.rsi
-                                                    )}
-                                                </span>
-
-                                            </td>
-
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        getIndicatorClass(
-                                                            asset.macd,
-                                                            "macd"
-                                                        )
-                                                    }
-                                                >
-                                                    {formatNumber(
-                                                        asset.macd,
-                                                        4
-                                                    )}
-                                                </span>
-
-                                            </td>
-
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        getIndicatorClass(
-                                                            asset.adx,
-                                                            "adx"
-                                                        )
-                                                    }
-                                                >
-                                                    {formatNumber(
-                                                        asset.adx
-                                                    )}
-                                                </span>
-
-                                            </td>
-
-
-                                            <td>
-                                                {formatNumber(
-                                                    asset.ema20
-                                                )}
-                                            </td>
-
-
-                                            <td>
-                                                {formatNumber(
-                                                    asset.sma50
-                                                )}
-                                            </td>
-
-
-                                            <td>
-
-                                                <span
-                                                    className={
-                                                        `risk-badge ${
-                                                            getRiskClass(
-                                                                asset.risk
+                                                        }
+                                                    >
+                                                        {
+                                                            formatNumber(
+                                                                asset.macd,
+                                                                4
                                                             )
-                                                        }`
-                                                    }
-                                                >
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            getIndicatorClass(
+                                                                asset.adx,
+                                                                "adx"
+                                                            )
+                                                        }
+                                                    >
+                                                        {
+                                                            formatNumber(
+                                                                asset.adx
+                                                            )
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
                                                     {
-                                                        asset.risk
+                                                        formatNumber(
+                                                            asset.ema20
+                                                        )
                                                     }
-                                                </span>
-
-                                            </td>
+                                                </td>
 
 
-                                            <td>
-
-                                                <span className="recommendation">
+                                                <td>
                                                     {
-                                                        asset.recommendation
+                                                        formatNumber(
+                                                            asset.sma50
+                                                        )
                                                     }
-                                                </span>
+                                                </td>
 
-                                            </td>
 
-                                        </tr>
+                                                <td>
 
+                                                    <span
+                                                        className={
+                                                            `risk-badge ${
+                                                                getRiskClass(
+                                                                    asset.risk
+                                                                )
+                                                            }`
+                                                        }
+                                                    >
+                                                        {
+                                                            asset.risk
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    <span className="recommendation">
+                                                        {
+                                                            asset.recommendation
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+
+                                            </tr>
+
+                                        )
                                     )
-                                )}
+                                }
 
                             </tbody>
 
@@ -1412,14 +2259,9 @@ export default function Scanner() {
 
                 )}
 
+
         </main>
 
     );
 
 }
-
-
-
-
-
-

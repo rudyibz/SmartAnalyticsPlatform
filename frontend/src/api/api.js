@@ -919,3 +919,21 @@ export async function getTradingSetupEvents() {
     );
 }
 
+export async function calculateTradingSetupRisk(data) {
+    const response =
+        await authenticatedFetch(
+            `${API_BASE_URL}/trading-setups/risk-management`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            }
+        );
+
+    return parseResponse(
+        response,
+        "Risk management error"
+    );
+}

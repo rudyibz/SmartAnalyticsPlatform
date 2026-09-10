@@ -59,4 +59,5 @@ export {
     getTradingSetupPerformance,
     getTradingSetupPerformanceBySymbol,
     getTradingSetupEvents,
+    calculateTradingSetupRisk,
 } from "../api/api";
