@@ -422,9 +422,84 @@ export default function Scanner() {
 
 
     // =========================================================
-    // RESET RISK MANAGEMENT AL CAMBIAR DE ACTIVO
+    // CURRENT RISK
     // =========================================================
 
+    const currentRisk = useMemo(() => {
+
+        if (!topOpportunity) {
+            return null;
+        }
+
+        const entry = Number(
+            topOpportunity.entry
+        );
+
+        const stopLoss = Number(
+            topOpportunity.stop_loss
+        );
+
+        const takeProfit = Number(
+            topOpportunity.take_profit
+        );
+
+        const qty = Number(
+            quantity
+        );
+
+        const capitalValue = Number(
+            capital
+        );
+
+        if (
+            !Number.isFinite(entry) ||
+            !Number.isFinite(stopLoss) ||
+            !Number.isFinite(takeProfit) ||
+            !Number.isFinite(qty) ||
+            qty <= 0
+        ) {
+            return null;
+        }
+
+        const riskPerUnit =
+            Math.abs(
+                entry - stopLoss
+            );
+
+        const rewardPerUnit =
+            Math.abs(
+                takeProfit - entry
+            );
+
+        const actualRisk =
+            riskPerUnit * qty;
+
+        const potentialProfit =
+            rewardPerUnit * qty;
+
+        const riskPercentActual =
+            capitalValue > 0
+                ? (actualRisk / capitalValue) * 100
+                : 0;
+
+        return {
+            actualRisk,
+            potentialProfit,
+            riskPercentActual,
+            positionValue:
+                entry * qty,
+        };
+
+    }, [
+        topOpportunity,
+        quantity,
+        capital,
+    ]);
+
+
+    // =========================================================
+    // RESET RISK MANAGEMENT AL CAMBIAR DE ACTIVO
+    // =========================================================
     useEffect(() => {
 
         setRiskManagement(null);
@@ -699,7 +774,7 @@ export default function Scanner() {
                 )
                     ? existingAlerts
                     : existingAlerts?.data ||
-                      [];
+                    [];
 
 
             const setupAlerts = [
@@ -1152,6 +1227,97 @@ export default function Scanner() {
                         </div>
 
 
+                                                    {currentRisk && (
+
+                                <div className="trading-risk-results">
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT QUANTITY
+                                        </span>
+
+                                        <strong>
+                                            {formatNumber(
+                                                quantity,
+                                                4
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT RISK
+                                        </span>
+
+                                        <strong className="equity-negative">
+                                            -$
+                                            {formatNumber(
+                                                currentRisk.actualRisk,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT RISK %
+                                        </span>
+
+                                        <strong>
+                                            {formatNumber(
+                                                currentRisk.riskPercentActual,
+                                                2
+                                            )}
+                                            %
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            POSITION VALUE
+                                        </span>
+
+                                        <strong>
+                                            $
+                                            {formatNumber(
+                                                currentRisk.positionValue,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div className="trading-setup-item target">
+
+                                        <span>
+                                            POTENTIAL PROFIT
+                                        </span>
+
+                                        <strong className="equity-positive">
+                                            +$
+                                            {formatNumber(
+                                                currentRisk.potentialProfit,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+                            )}
+
                         {/* =================================================
                             RISK MANAGEMENT
                         ================================================= */}
@@ -1162,9 +1328,7 @@ export default function Scanner() {
                                 RISK MANAGEMENT
                             </div>
 
-
                             <div className="trading-risk-inputs">
-
 
                                 <div className="trading-setup-item">
 
@@ -1176,21 +1340,15 @@ export default function Scanner() {
                                         type="number"
                                         min="1"
                                         step="100"
-                                        value={
-                                            capital
-                                        }
-                                        onChange={
-                                            event =>
-                                                setCapital(
-                                                    Number(
-                                                        event.target.value
-                                                    )
-                                                )
+                                        value={capital}
+                                        onChange={(event) =>
+                                            setCapital(
+                                                Number(event.target.value)
+                                            )
                                         }
                                     />
 
                                 </div>
-
 
                                 <div className="trading-setup-item">
 
@@ -1203,64 +1361,44 @@ export default function Scanner() {
                                         min="0.01"
                                         max="100"
                                         step="0.1"
-                                        value={
-                                            riskPercent
-                                        }
-                                        onChange={
-                                            event =>
-                                                setRiskPercent(
-                                                    Number(
-                                                        event.target.value
-                                                    )
-                                                )
+                                        value={riskPercent}
+                                        onChange={(event) =>
+                                            setRiskPercent(
+                                                Number(event.target.value)
+                                            )
                                         }
                                     />
 
                                 </div>
-
 
                                 <div className="trading-risk-action">
 
                                     <button
                                         type="button"
                                         className="trading-alert-button"
-                                        onClick={
-                                            calculateRisk
-                                        }
-                                        disabled={
-                                            riskLoading
-                                        }
+                                        onClick={calculateRisk}
+                                        disabled={riskLoading}
                                     >
-
                                         {riskLoading
                                             ? "Calculando..."
                                             : "🧮 Calcular Riesgo"}
-
                                     </button>
 
                                 </div>
 
-
                             </div>
-
 
                             {riskError && (
 
                                 <div className="scanner-error">
-
-                                    {
-                                        riskError
-                                    }
-
+                                    {riskError}
                                 </div>
 
                             )}
 
-
                             {riskManagement && (
 
                                 <div className="trading-risk-results">
-
 
                                     <div className="trading-setup-item">
 
@@ -1278,7 +1416,6 @@ export default function Scanner() {
 
                                     </div>
 
-
                                     <div className="trading-setup-item quantity">
 
                                         <span>
@@ -1286,16 +1423,39 @@ export default function Scanner() {
                                         </span>
 
                                         <strong>
-                                            {
-                                                formatNumber(
-                                                    riskManagement.recommended_quantity,
-                                                    4
-                                                )
-                                            }
+                                            {formatNumber(
+                                                riskManagement.recommended_quantity,
+                                                4
+                                            )}
                                         </strong>
 
-                                    </div>
+                                        <button
+                                            type="button"
+                                            className="trading-alert-button"
+                                            style={{
+                                                marginTop: "8px",
+                                                width: "100%",
+                                            }}
+                                            onClick={() => {
 
+                                                const recommended =
+                                                    Number(
+                                                        riskManagement.recommended_quantity
+                                                    );
+
+                                                if (
+                                                    Number.isFinite(recommended) &&
+                                                    recommended > 0
+                                                ) {
+                                                    setQuantity(recommended);
+                                                }
+
+                                            }}
+                                        >
+                                            ✅ Usar Quantity recomendada
+                                        </button>
+
+                                    </div>
 
                                     <div className="trading-setup-item">
 
@@ -1313,14 +1473,13 @@ export default function Scanner() {
 
                                     </div>
 
-
                                     <div className="trading-setup-item stop">
 
                                         <span>
                                             MAX LOSS
                                         </span>
 
-                                        <strong>
+                                        <strong className="equity-negative">
                                             -$
                                             {formatNumber(
                                                 riskManagement.max_loss,
@@ -1330,14 +1489,13 @@ export default function Scanner() {
 
                                     </div>
 
-
                                     <div className="trading-setup-item target">
 
                                         <span>
                                             POTENTIAL PROFIT
                                         </span>
 
-                                        <strong>
+                                        <strong className="equity-positive">
                                             +$
                                             {formatNumber(
                                                 riskManagement.potential_profit,
@@ -1347,7 +1505,6 @@ export default function Scanner() {
 
                                     </div>
 
-
                                     <div className="trading-setup-item rr">
 
                                         <span>
@@ -1356,21 +1513,101 @@ export default function Scanner() {
 
                                         <strong>
                                             1 :
-                                            {
-                                                formatNumber(
-                                                    riskManagement.risk_reward,
-                                                    2
-                                                )
-                                            }
+                                            {formatNumber(
+                                                riskManagement.risk_reward,
+                                                2
+                                            )}
                                         </strong>
 
                                     </div>
-
 
                                 </div>
 
                             )}
 
+                            {currentRisk && (
+
+                                <div className="trading-risk-results">
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT QUANTITY
+                                        </span>
+
+                                        <strong>
+                                            {formatNumber(quantity, 4)}
+                                        </strong>
+
+                                    </div>
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT RISK
+                                        </span>
+
+                                        <strong className="equity-negative">
+                                            -$
+                                            {formatNumber(
+                                                currentRisk.actualRisk,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            CURRENT RISK %
+                                        </span>
+
+                                        <strong>
+                                            {formatNumber(
+                                                currentRisk.riskPercentActual,
+                                                2
+                                            )}
+                                            %
+                                        </strong>
+
+                                    </div>
+
+                                    <div className="trading-setup-item">
+
+                                        <span>
+                                            POSITION VALUE
+                                        </span>
+
+                                        <strong>
+                                            $
+                                            {formatNumber(
+                                                currentRisk.positionValue,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+                                    <div className="trading-setup-item target">
+
+                                        <span>
+                                            POTENTIAL PROFIT
+                                        </span>
+
+                                        <strong className="equity-positive">
+                                            +$
+                                            {formatNumber(
+                                                currentRisk.potentialProfit,
+                                                2
+                                            )}
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+                            )}
 
                         </div>
 
