@@ -639,7 +639,7 @@ export default function Scanner() {
     }
 
 
-    // =========================================================
+        // =========================================================
     // CREAR ALERTAS DEL SETUP
     // =========================================================
 
@@ -649,15 +649,75 @@ export default function Scanner() {
             return;
         }
 
+
+        // =====================================================
+        // PROTECCIÓN DE RIESGO
+        // =====================================================
+
+        const MAX_RISK_PERCENT = 2;
+
+
+        if (!currentRisk) {
+
+            alert(
+                "⚠️ Calcula primero el Risk Management antes de crear el setup."
+            );
+
+            return;
+        }
+
+
+        const actualRiskPercent =
+            Number(
+                currentRisk.riskPercentActual
+            );
+
+
+        if (
+            !Number.isFinite(
+                actualRiskPercent
+            )
+        ) {
+
+            alert(
+                "⚠️ No se pudo determinar el riesgo actual."
+            );
+
+            return;
+        }
+
+
+        if (
+            actualRiskPercent > MAX_RISK_PERCENT
+        ) {
+
+            alert(
+                `🛑 SETUP BLOQUEADO\n\n` +
+                `Riesgo actual: ${actualRiskPercent.toFixed(2)}%\n` +
+                `Riesgo máximo permitido: ${MAX_RISK_PERCENT.toFixed(2)}%\n\n` +
+                `Reduce la Quantity antes de crear el setup.`
+            );
+
+            return;
+        }
+
+
         const direction =
             topOpportunity.direction;
+
 
         if (
             direction !== "LONG" &&
             direction !== "SHORT"
         ) {
+
+            alert(
+                "⚠️ El setup no tiene una dirección válida."
+            );
+
             return;
         }
+
 
         const symbol =
             String(
@@ -666,59 +726,83 @@ export default function Scanner() {
                 .trim()
                 .toUpperCase();
 
+
         const entry =
             Number(
                 topOpportunity.entry
             );
+
 
         const stopLoss =
             Number(
                 topOpportunity.stop_loss
             );
 
+
         const takeProfit =
             Number(
                 topOpportunity.take_profit
             );
+
 
         const atr =
             Number(
                 topOpportunity.atr
             );
 
+
         const riskReward =
             Number(
                 topOpportunity.risk_reward
             );
+
 
         const opportunityScore =
             Number(
                 topOpportunity.opportunity_score
             );
 
+
         const opportunityLabel =
             topOpportunity.opportunity_label;
+
+
+        const setupQuantity =
+            Number(quantity);
 
 
         if (
             !symbol ||
             !Number.isFinite(entry) ||
             !Number.isFinite(stopLoss) ||
-            !Number.isFinite(takeProfit)
+            !Number.isFinite(takeProfit) ||
+            !Number.isFinite(setupQuantity) ||
+            setupQuantity <= 0
         ) {
+
+            alert(
+                "⚠️ Los datos del setup no son válidos."
+            );
+
             return;
         }
 
+
+        // =====================================================
+        // OPERADORES DE ALERTA
+        // =====================================================
 
         const entryOperator =
             direction === "LONG"
                 ? ">="
                 : "<=";
 
+
         const stopOperator =
             direction === "LONG"
                 ? "<="
                 : ">=";
+
 
         const targetOperator =
             direction === "LONG"
@@ -726,43 +810,39 @@ export default function Scanner() {
                 : "<=";
 
 
+        // =====================================================
+        // SETUP DATA
+        // =====================================================
+
         const setupData = {
-
             symbol,
-
             direction,
-
             entry,
-
-            quantity:
-                Number(quantity),
-
-            stop_loss:
-                stopLoss,
-
-            take_profit:
-                takeProfit,
-
+            quantity: Number(quantity),
+            stop_loss: stopLoss,
+            take_profit: takeProfit,
             atr,
-
-            risk_reward:
-                riskReward,
-
-            opportunity_score:
-                opportunityScore,
-
-            opportunity_label:
-                opportunityLabel,
-
+            risk_reward: riskReward,
+            opportunity_score: opportunityScore,
+            opportunity_label: opportunityLabel,
+            capital: Number(capital),
         };
 
 
         try {
 
+            // =================================================
+            // CREAR TRADING SETUP
+            // =================================================
+
             await createTradingSetup(
                 setupData
             );
 
+
+            // =================================================
+            // OBTENER ALERTAS EXISTENTES
+            // =================================================
 
             const existingAlerts =
                 await getAlerts();
@@ -774,8 +854,12 @@ export default function Scanner() {
                 )
                     ? existingAlerts
                     : existingAlerts?.data ||
-                    [];
+                      [];
 
+
+            // =================================================
+            // ALERTAS DEL SETUP
+            // =================================================
 
             const setupAlerts = [
 
@@ -810,7 +894,7 @@ export default function Scanner() {
 
 
             for (
-                const setup
+                const setupAlert
                 of setupAlerts
             ) {
 
@@ -836,12 +920,12 @@ export default function Scanner() {
                                 alertItem.operator ||
                                 ""
                             ) ===
-                                setup.operator &&
+                                setupAlert.operator &&
 
                             Number(
                                 alertItem.target_value
                             ) ===
-                                setup.target_value &&
+                                setupAlert.target_value &&
 
                             alertItem.is_active !==
                                 false
@@ -861,10 +945,10 @@ export default function Scanner() {
                         "price",
 
                     operator:
-                        setup.operator,
+                        setupAlert.operator,
 
                     target_value:
-                        setup.target_value,
+                        setupAlert.target_value,
 
                 });
 
@@ -874,24 +958,33 @@ export default function Scanner() {
             }
 
 
+            // =================================================
+            // RESULTADO
+            // =================================================
+
             if (created === 0) {
 
                 alert(
-                    `⚠️ Las 3 alertas del setup de ${symbol} ya existen.`
+                    `⚠️ Las 3 alertas del setup de ${symbol} ya existen.\n\n` +
+                    `Riesgo: ${actualRiskPercent.toFixed(2)}%`
                 );
 
             }
             else if (created < 3) {
 
                 alert(
-                    `🔔 ${created} alerta(s) nueva(s) creada(s) para ${symbol}.`
+                    `🔔 ${created} alerta(s) nueva(s) creada(s) para ${symbol}.\n\n` +
+                    `Riesgo: ${actualRiskPercent.toFixed(2)}%`
                 );
 
             }
             else {
 
                 alert(
-                    `🔔 3 alertas creadas para ${symbol}.`
+                    `✅ Setup creado correctamente para ${symbol}.\n\n` +
+                    `Quantity: ${setupQuantity}\n` +
+                    `Riesgo: ${actualRiskPercent.toFixed(2)}%\n` +
+                    `Riesgo máximo: ${MAX_RISK_PERCENT.toFixed(2)}%`
                 );
 
             }
@@ -900,13 +993,13 @@ export default function Scanner() {
         catch (err) {
 
             console.error(
-                "[SCANNER] Error creando alertas:",
+                "[SCANNER] Error creando setup/alertas:",
                 err
             );
 
             alert(
                 err?.message ||
-                "No se pudieron crear las alertas."
+                "No se pudo crear el setup."
             );
 
         }

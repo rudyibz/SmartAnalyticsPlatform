@@ -2,12 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-
 from app.services.trading_setup_service import (
     create_setup,
     get_active_setups,
-    get_all_setups,
     close_setup,
+    get_all_setups,
     get_setup_performance,
     get_performance_by_symbol,
 )
@@ -31,33 +30,23 @@ router = APIRouter(
 )
 
 
-# ============================================================
-# CREATE TRADING SETUP
-# ============================================================
-
 @router.post("/")
 def create_trading_setup(
     data: dict,
     db: Session = Depends(get_db),
 ):
     try:
-
         return create_setup(
             db,
             data,
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
 
-
-# ============================================================
-# LIST ACTIVE TRADING SETUPS
-# ============================================================
 
 @router.get("/")
 def list_trading_setups(
@@ -67,10 +56,6 @@ def list_trading_setups(
         db
     )
 
-
-# ============================================================
-# CLOSE TRADING SETUP
-# ============================================================
 
 @router.patch("/{setup_id}/close")
 def close_trading_setup(
@@ -83,7 +68,6 @@ def close_trading_setup(
     )
 
     if not setup:
-
         raise HTTPException(
             status_code=404,
             detail="Trading setup no encontrado",
@@ -91,10 +75,6 @@ def close_trading_setup(
 
     return setup
 
-
-# ============================================================
-# EVALUATE TRADING SETUPS
-# ============================================================
 
 @router.post("/evaluate")
 def evaluate_trading_setups(
@@ -105,10 +85,6 @@ def evaluate_trading_setups(
     )
 
 
-# ============================================================
-# HISTORY
-# ============================================================
-
 @router.get("/history")
 def list_trading_setup_history(
     db: Session = Depends(get_db),
@@ -117,10 +93,6 @@ def list_trading_setup_history(
         db
     )
 
-
-# ============================================================
-# PERFORMANCE
-# ============================================================
 
 @router.get("/performance")
 def trading_setup_performance(
@@ -131,10 +103,6 @@ def trading_setup_performance(
     )
 
 
-# ============================================================
-# PERFORMANCE BY SYMBOL
-# ============================================================
-
 @router.get("/performance/by-symbol")
 def trading_setup_performance_by_symbol(
     db: Session = Depends(get_db),
@@ -143,10 +111,6 @@ def trading_setup_performance_by_symbol(
         db
     )
 
-
-# ============================================================
-# TRADING SETUP EVENTS
-# ============================================================
 
 @router.get("/events")
 def get_trading_setup_events(
@@ -165,16 +129,11 @@ def get_trading_setup_events(
     return events
 
 
-# ============================================================
-# RISK MANAGEMENT
-# ============================================================
-
 @router.post("/risk-management")
 def trading_setup_risk_management(
     data: dict,
 ):
     try:
-
         return calculate_risk_management(
             capital=data["capital"],
             risk_percent=data["risk_percent"],
@@ -185,7 +144,6 @@ def trading_setup_risk_management(
         )
 
     except KeyError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=f"Missing required field: {exc.args[0]}",
@@ -195,8 +153,8 @@ def trading_setup_risk_management(
         TypeError,
         ValueError,
     ) as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
+

@@ -6,6 +6,9 @@ from app.models.trading_setup import TradingSetup
 from app.services.market_service import get_price
 
 
+MAX_SETUP_RISK_PERCENT = 2.0
+
+
 def create_setup(db: Session, data: dict):
 
     symbol = str(data["symbol"]).strip().upper()
@@ -15,9 +18,24 @@ def create_setup(db: Session, data: dict):
     quantity = float(data.get("quantity", 1.0))
     stop_loss = float(data["stop_loss"])
     take_profit = float(data["take_profit"])
+    capital = float(data.get("capital", 0))
 
     if quantity <= 0:
         raise ValueError("Quantity must be greater than 0")
+
+    if capital <= 0:
+        raise ValueError("Capital must be greater than 0")
+
+    risk_per_unit = abs(entry - stop_loss)
+    actual_risk = risk_per_unit * quantity
+    actual_risk_percent = (actual_risk / capital) * 100
+
+    if actual_risk_percent > MAX_SETUP_RISK_PERCENT:
+        raise ValueError(
+            f"Setup bloqueado: riesgo actual "
+            f"{actual_risk_percent:.2f}% > "
+            f"{MAX_SETUP_RISK_PERCENT:.2f}% máximo permitido"
+        )
 
     existing = (
         db.query(TradingSetup)
@@ -251,6 +269,7 @@ def get_setup_performance(db: Session):
         "equity": equity,
     }
 
+
 def get_performance_by_symbol(db: Session):
 
     setups = (
@@ -456,4 +475,3 @@ def evaluate_active_setups(
             )
 
     return evaluated
-
