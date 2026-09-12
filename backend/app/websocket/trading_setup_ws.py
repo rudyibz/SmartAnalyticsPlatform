@@ -108,10 +108,7 @@ async def websocket_trading_setups(
                             "realized_pnl": (
                                 event.realized_pnl
                             ),
-                            "created_at": (event.created_at.isoformat()
-                                if event.created_at
-                                else None
-                                ),
+                            "created_at": (event.created_at.isoformat() if event.created_at else None),
                         }
                     )
 
