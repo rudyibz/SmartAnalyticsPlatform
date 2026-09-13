@@ -156,10 +156,46 @@ def get_setup_performance(db: Session):
     winner_count = len(winners)
     loser_count = len(losers)
 
+    take_profit_trades = sum(
+        1
+        for setup in setups
+        if setup.status == "HIT_TP"
+    )
+
+    stop_loss_trades = sum(
+        1
+        for setup in setups
+        if setup.status == "HIT_SL"
+    )
+
+    long_trades = sum(
+        1
+        for setup in setups
+        if setup.direction == "LONG"
+    )
+
+    short_trades = sum(
+        1
+        for setup in setups
+        if setup.direction == "SHORT"
+    )
+
     realized_pnl = sum(pnls)
 
     win_rate = (
         (winner_count / total) * 100
+        if total > 0
+        else 0
+    )
+
+    take_profit_rate = (
+        (take_profit_trades / total) * 100
+        if total > 0
+        else 0
+    )
+
+    stop_loss_rate = (
+        (stop_loss_trades / total) * 100
         if total > 0
         else 0
     )
@@ -197,16 +233,19 @@ def get_setup_performance(db: Session):
         else 0
     )
 
-    best_trade = (
-        max(pnls)
-        if pnls
-        else 0
-    )
+    best_trade = max(pnls) if pnls else 0
+    worst_trade = min(pnls) if pnls else 0
 
-    worst_trade = (
-        min(pnls)
-        if pnls
-        else 0
+    rr_values = [
+        float(setup.risk_reward)
+        for setup in setups
+        if setup.risk_reward is not None
+    ]
+
+    average_risk_reward = (
+        sum(rr_values) / len(rr_values)
+        if rr_values
+        else None
     )
 
     cumulative_pnl = 0.0
@@ -251,6 +290,12 @@ def get_setup_performance(db: Session):
         "winners": winner_count,
         "losers": loser_count,
         "win_rate": round(win_rate, 2),
+        "take_profit_trades": take_profit_trades,
+        "stop_loss_trades": stop_loss_trades,
+        "take_profit_rate": round(take_profit_rate, 2),
+        "stop_loss_rate": round(stop_loss_rate, 2),
+        "long_trades": long_trades,
+        "short_trades": short_trades,
         "realized_pnl": round(realized_pnl, 2),
         "average_pnl": round(average_pnl, 2),
         "average_winner": round(average_winner, 2),
@@ -265,10 +310,14 @@ def get_setup_performance(db: Session):
         "expectancy": round(expectancy, 2),
         "best_trade": round(best_trade, 2),
         "worst_trade": round(worst_trade, 2),
+        "average_risk_reward": (
+            round(average_risk_reward, 2)
+            if average_risk_reward is not None
+            else None
+        ),
         "max_drawdown": round(max_drawdown, 2),
         "equity": equity,
     }
-
 
 def get_performance_by_symbol(db: Session):
 
@@ -277,6 +326,9 @@ def get_performance_by_symbol(db: Session):
         .filter(
             TradingSetup.status.in_(["HIT_TP", "HIT_SL"]),
             TradingSetup.realized_pnl.isnot(None),
+        )
+        .order_by(
+            TradingSetup.closed_at.asc()
         )
         .all()
     )
@@ -293,7 +345,15 @@ def get_performance_by_symbol(db: Session):
                 "trades": 0,
                 "winners": 0,
                 "losers": 0,
+                "long_trades": 0,
+                "short_trades": 0,
+                "take_profit_trades": 0,
+                "stop_loss_trades": 0,
                 "realized_pnl": 0.0,
+                "gross_profit": 0.0,
+                "gross_loss": 0.0,
+                "risk_reward_total": 0.0,
+                "risk_reward_count": 0,
             }
 
         item = grouped[symbol]
@@ -308,8 +368,31 @@ def get_performance_by_symbol(db: Session):
 
         if pnl > 0:
             item["winners"] += 1
+            item["gross_profit"] += pnl
+
         elif pnl < 0:
             item["losers"] += 1
+            item["gross_loss"] += abs(pnl)
+
+        if setup.direction == "LONG":
+            item["long_trades"] += 1
+
+        elif setup.direction == "SHORT":
+            item["short_trades"] += 1
+
+        if setup.status == "HIT_TP":
+            item["take_profit_trades"] += 1
+
+        elif setup.status == "HIT_SL":
+            item["stop_loss_trades"] += 1
+
+        if setup.risk_reward is not None:
+            item["risk_reward_total"] += float(
+                setup.risk_reward
+            )
+            item["risk_reward_count"] += 1
+
+    results = []
 
     for item in grouped.values():
 
@@ -327,6 +410,44 @@ def get_performance_by_symbol(db: Session):
             2,
         )
 
-    return list(
-        grouped.values()
-    )
+        item["take_profit_rate"] = round(
+            (item["take_profit_trades"] / trades) * 100
+            if trades
+            else 0,
+            2,
+        )
+
+        item["stop_loss_rate"] = round(
+            (item["stop_loss_trades"] / trades) * 100
+            if trades
+            else 0,
+            2,
+        )
+
+        item["average_pnl"] = round(
+            item["realized_pnl"] / trades
+            if trades
+            else 0,
+            2,
+        )
+
+        item["profit_factor"] = round(
+            item["gross_profit"] / item["gross_loss"],
+            2,
+        ) if item["gross_loss"] > 0 else None
+
+        item["average_risk_reward"] = round(
+            item["risk_reward_total"] /
+            item["risk_reward_count"],
+            2,
+        ) if item["risk_reward_count"] > 0 else None
+
+        del item["gross_profit"]
+        del item["gross_loss"]
+        del item["risk_reward_total"]
+        del item["risk_reward_count"]
+
+        results.append(item)
+
+    return results
+

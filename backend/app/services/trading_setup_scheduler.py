@@ -10,6 +10,28 @@ from app.core.logger import logger
 MONITOR_INTERVAL = 30
 
 
+def _run_monitor_cycle():
+    db = SessionLocal()
+
+    try:
+        results = evaluate_active_setups(db)
+
+        if results:
+            logger.info(
+                f"Trading Setup Monitor: "
+                f"{len(results)} setup(s) evaluado(s)."
+            )
+
+    except Exception as exc:
+        logger.error(
+            f"Error en Trading Setup Monitor: "
+            f"{exc}"
+        )
+
+    finally:
+        db.close()
+
+
 async def trading_setup_monitor():
     logger.info(
         "Trading Setup Monitor iniciado."
@@ -17,27 +39,14 @@ async def trading_setup_monitor():
 
     try:
         while True:
-            db = SessionLocal()
 
-            try:
-                results = evaluate_active_setups(db)
+            await asyncio.to_thread(
+                _run_monitor_cycle
+            )
 
-                if results:
-                    logger.info(
-                        f"Trading Setup Monitor: "
-                        f"{len(results)} setup(s) evaluado(s)."
-                    )
-
-            except Exception as exc:
-                logger.error(
-                    f"Error en Trading Setup Monitor: "
-                    f"{exc}"
-                )
-
-            finally:
-                db.close()
-
-            await asyncio.sleep(MONITOR_INTERVAL)
+            await asyncio.sleep(
+                MONITOR_INTERVAL
+            )
 
     except asyncio.CancelledError:
         logger.info(
