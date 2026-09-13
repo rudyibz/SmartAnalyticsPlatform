@@ -62,13 +62,20 @@ async def lifespan(app: FastAPI):
         trading_setup_monitor()
     )
 
-    yield
+    try:
+        yield
 
-    monitor_task.cancel()
+    finally:
+        monitor_task.cancel()
 
-    logger.info(
-        "Cerrando SmartAnalyticsPlatform..."
-    )
+        try:
+            await monitor_task
+        except asyncio.CancelledError:
+            pass
+
+        logger.info(
+            "Cerrando SmartAnalyticsPlatform..."
+        )
 app = FastAPI(
     title=APP_NAME,
     version=VERSION,

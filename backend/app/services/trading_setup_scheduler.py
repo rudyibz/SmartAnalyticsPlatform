@@ -11,39 +11,36 @@ MONITOR_INTERVAL = 30
 
 
 async def trading_setup_monitor():
-
     logger.info(
         "Trading Setup Monitor iniciado."
     )
 
-    while True:
+    try:
+        while True:
+            db = SessionLocal()
 
-        db = SessionLocal()
+            try:
+                results = evaluate_active_setups(db)
 
-        try:
+                if results:
+                    logger.info(
+                        f"Trading Setup Monitor: "
+                        f"{len(results)} setup(s) evaluado(s)."
+                    )
 
-            results = evaluate_active_setups(
-                db
-            )
-
-            if results:
-
-                logger.info(
-                    f"Trading Setup Monitor: "
-                    f"{len(results)} setup(s) evaluado(s)."
+            except Exception as exc:
+                logger.error(
+                    f"Error en Trading Setup Monitor: "
+                    f"{exc}"
                 )
 
-        except Exception as exc:
+            finally:
+                db.close()
 
-            logger.error(
-                f"Error en Trading Setup Monitor: "
-                f"{exc}"
-            )
+            await asyncio.sleep(MONITOR_INTERVAL)
 
-        finally:
-
-            db.close()
-
-        await asyncio.sleep(
-            MONITOR_INTERVAL
+    except asyncio.CancelledError:
+        logger.info(
+            "Trading Setup Monitor detenido."
         )
+        raise
