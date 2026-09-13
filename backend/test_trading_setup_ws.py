@@ -2,7 +2,7 @@ import asyncio
 import websockets
 
 
-async def test():
+async def run_trading_setup_ws_manual():
     ws = await websockets.connect(
         "ws://127.0.0.1:8010/ws/trading-setups"
     )
@@ -15,4 +15,5 @@ async def test():
 
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    asyncio.run(run_trading_setup_ws_manual())
+
