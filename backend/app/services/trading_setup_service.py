@@ -13,7 +13,6 @@ def create_setup(db: Session, data: dict):
 
     symbol = str(data["symbol"]).strip().upper()
     direction = str(data["direction"]).strip().upper()
-
     entry = float(data["entry"])
     quantity = float(data.get("quantity", 1.0))
     stop_loss = float(data["stop_loss"])
@@ -277,12 +276,18 @@ def get_setup_performance(db: Session):
         )
 
         equity.append({
-            "id": setup.id,
-            "symbol": setup.symbol,
-            "closed_at": setup.closed_at,
-            "realized_pnl": round(pnl, 2),
-            "equity": round(cumulative_pnl, 2),
-        })
+                "id": setup.id,
+                "symbol": setup.symbol,
+                "direction": setup.direction,
+                "status": setup.status,
+                "entry": setup.entry,
+                "exit_price": setup.exit_price,
+                "quantity": setup.quantity,
+                "risk_reward": setup.risk_reward,
+                "closed_at": setup.closed_at,
+                "realized_pnl": round(pnl, 2),
+                "equity": round(cumulative_pnl, 2),
+            })
 
     return {
         "trades": total,

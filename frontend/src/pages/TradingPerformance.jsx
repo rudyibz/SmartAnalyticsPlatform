@@ -112,39 +112,69 @@ export default function TradingPerformance() {
     }
 
 
-    const pnl = Number(
-        performance?.realized_pnl || 0
-    );
+const pnl = Number(
+    performance?.realized_pnl || 0
+);
 
-    const averagePnl = Number(
-        performance?.average_pnl || 0
-    );
+const averagePnl = Number(
+    performance?.average_pnl || 0
+);
 
-    const averageWinner = Number(
-        performance?.average_winner || 0
-    );
+const averageWinner = Number(
+    performance?.average_winner || 0
+);
 
-    const averageLoser = Number(
-        performance?.average_loser || 0
-    );
+const averageLoser = Number(
+    performance?.average_loser || 0
+);
 
-    const profitFactor = performance?.profit_factor;
+const profitFactor = performance?.profit_factor;
 
-    const expectancy = Number(
-        performance?.expectancy || 0
-    );
+const expectancy = Number(
+    performance?.expectancy || 0
+);
 
-    const bestTrade = Number(
-        performance?.best_trade || 0
-    );
+const bestTrade = Number(
+    performance?.best_trade || 0
+);
 
-    const worstTrade = Number(
-        performance?.worst_trade || 0
-    );
+const worstTrade = Number(
+    performance?.worst_trade || 0
+);
 
-    const maxDrawdown = Number(
-        performance?.max_drawdown || 0
-    );
+const maxDrawdown = Number(
+    performance?.max_drawdown || 0
+);
+
+const takeProfitTrades = Number(
+    performance?.take_profit_trades || 0
+);
+
+const stopLossTrades = Number(
+    performance?.stop_loss_trades || 0
+);
+
+const takeProfitRate = Number(
+    performance?.take_profit_rate || 0
+);
+
+const stopLossRate = Number(
+    performance?.stop_loss_rate || 0
+);
+
+const longTrades = Number(
+    performance?.long_trades || 0
+);
+
+const shortTrades = Number(
+    performance?.short_trades || 0
+);
+
+const averageRiskReward =
+    performance?.average_risk_reward !== null &&
+    performance?.average_risk_reward !== undefined
+        ? Number(performance.average_risk_reward)
+        : null;
 
     const equity = Array.isArray(
         performance?.equity
@@ -355,6 +385,64 @@ export default function TradingPerformance() {
                 </div>
 
             </div>
+            {/* =================================
+    OUTCOME & DIRECTION
+================================= */}
+
+<div className="scanner-summary">
+
+    <div className="scanner-summary-card">
+        <span>TAKE PROFIT</span>
+        <strong className="equity-positive">
+            {takeProfitTrades}
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>TP RATE</span>
+        <strong className="equity-positive">
+            {takeProfitRate.toFixed(1)}%
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>STOP LOSS</span>
+        <strong className="equity-negative">
+            {stopLossTrades}
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>SL RATE</span>
+        <strong className="equity-negative">
+            {stopLossRate.toFixed(1)}%
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>LONG</span>
+        <strong>
+            {longTrades}
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>SHORT</span>
+        <strong>
+            {shortTrades}
+        </strong>
+    </div>
+
+    <div className="scanner-summary-card">
+        <span>AVG RISK / REWARD</span>
+        <strong>
+            {averageRiskReward !== null
+                ? averageRiskReward.toFixed(2)
+                : "—"}
+        </strong>
+    </div>
+
+</div>
 
 
             {/* =================================
@@ -636,6 +724,14 @@ export default function TradingPerformance() {
                                     </th>
 
                                     <th>
+                                        DIRECTION
+                                    </th>
+
+                                    <th>
+                                        QUANTITY
+                                    </th>
+
+                                    <th>
                                         STATUS
                                     </th>
 
@@ -690,6 +786,15 @@ export default function TradingPerformance() {
                                                         {trade.symbol}
                                                     </strong>
 
+                                                </td>
+                                                <td>
+                                                    <strong>
+                                                        {trade.direction || "—"}
+                                                    </strong>
+                                                </td>
+
+                                                <td>
+                                                    {trade.quantity ?? "—"}
                                                 </td>
 
 
@@ -751,8 +856,8 @@ export default function TradingPerformance() {
 
                                                     {trade.closed_at
                                                         ? new Date(
-                                                              trade.closed_at
-                                                          ).toLocaleString()
+                                                            trade.closed_at
+                                                        ).toLocaleString()
                                                         : "—"}
 
                                                 </td>
@@ -806,35 +911,33 @@ export default function TradingPerformance() {
 
                             <thead>
 
-                                <tr>
+                                    <tr>
 
-                                    <th>
-                                        SYMBOL
-                                    </th>
+                                        <th>SYMBOL</th>
 
-                                    <th>
-                                        TRADES
-                                    </th>
+                                        <th>TRADES</th>
 
-                                    <th>
-                                        WINNERS
-                                    </th>
+                                        <th>WIN RATE</th>
 
-                                    <th>
-                                        LOSERS
-                                    </th>
+                                        <th>LONG</th>
 
-                                    <th>
-                                        WIN RATE
-                                    </th>
+                                        <th>SHORT</th>
 
-                                    <th>
-                                        REALIZED P/L
-                                    </th>
+                                        <th>TP</th>
 
-                                </tr>
+                                        <th>SL</th>
 
-                            </thead>
+                                        <th>AVG P/L</th>
+
+                                        <th>PROFIT FACTOR</th>
+
+                                        <th>AVG R/R</th>
+
+                                        <th>REALIZED P/L</th>
+
+                                    </tr>
+
+                                </thead>
 
 
                             <tbody>
@@ -846,6 +949,22 @@ export default function TradingPerformance() {
                                             Number(
                                                 item.realized_pnl || 0
                                             );
+                                        const itemAveragePnl =
+                                            Number(
+                                                item.average_pnl || 0
+                                            );
+
+                                        const itemProfitFactor =
+                                            item.profit_factor !== null &&
+                                            item.profit_factor !== undefined
+                                                ? Number(item.profit_factor)
+                                                : null;
+
+                                        const itemAverageRiskReward =
+                                            item.average_risk_reward !== null &&
+                                            item.average_risk_reward !== undefined
+                                                ? Number(item.average_risk_reward)
+                                                : null;
 
 
                                         return (

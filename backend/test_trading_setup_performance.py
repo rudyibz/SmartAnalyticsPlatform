@@ -19,14 +19,6 @@ class QueryResult:
         return self.rows
 
 
-class FakeQuery:
-    def __init__(self, rows):
-        self.rows = rows
-
-    def query(self, model):
-        return QueryResult(self.rows)
-
-
 class FakeDB:
     def __init__(self, rows):
         self.rows = rows
@@ -48,8 +40,11 @@ def make_setup(
         symbol=symbol,
         direction=direction,
         status=status,
-        realized_pnl=pnl,
+        entry=100.0,
+        exit_price=105.0 if pnl > 0 else 95.0,
+        quantity=1.0,
         risk_reward=rr,
+        realized_pnl=pnl,
         closed_at=f"2026-09-{setup_id:02d}T12:00:00",
     )
 
@@ -111,6 +106,10 @@ def test_performance_metrics():
 
     assert result["average_risk_reward"] == 2.0
     assert result["max_drawdown"] == 100
+
+    assert result["equity"][0]["direction"] == "LONG"
+    assert result["equity"][0]["status"] == "HIT_TP"
+    assert result["equity"][0]["quantity"] == 1.0
 
 
 def test_empty_performance():
