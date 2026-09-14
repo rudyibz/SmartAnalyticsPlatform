@@ -228,10 +228,22 @@ const directionChartData = [
     {
         name: "LONG",
         trades: longTrades,
+        pnl: Number(
+            performance?.long_pnl || 0
+        ),
+        winRate: Number(
+            performance?.long_win_rate || 0
+        ),
     },
     {
         name: "SHORT",
         trades: shortTrades,
+        pnl: Number(
+            performance?.short_pnl || 0
+        ),
+        winRate: Number(
+            performance?.short_win_rate || 0
+        ),
     },
 ];
 
@@ -239,10 +251,16 @@ const outcomeChartData = [
     {
         name: "TAKE PROFIT",
         trades: takeProfitTrades,
+        pnl: Number(
+            performance?.take_profit_pnl || 0
+        ),
     },
     {
         name: "STOP LOSS",
         trades: stopLossTrades,
+        pnl: Number(
+            performance?.stop_loss_pnl || 0
+        ),
     },
 ];
 
@@ -1111,7 +1129,7 @@ const outcomeChartData = [
 </section>
 
 {/* =================================
-    LONG VS SHORT
+    LONG VS SHORT — P&L
 ================================= */}
 
 <section className="scanner-section">
@@ -1157,8 +1175,8 @@ const outcomeChartData = [
                 <Tooltip />
 
                 <Bar
-                    dataKey="trades"
-                    name="Trades"
+                    dataKey="pnl"
+                    name="Realized P/L"
                 />
 
             </BarChart>
@@ -1169,7 +1187,7 @@ const outcomeChartData = [
 
 </section>
 {/* =================================
-    TAKE PROFIT VS STOP LOSS
+    TAKE PROFIT VS STOP LOSS — P&L
 ================================= */}
 
 <section className="scanner-section">
@@ -1215,10 +1233,12 @@ const outcomeChartData = [
                 <Tooltip />
 
                 <Bar
-                    dataKey="trades"
-                    name="Trades"
-                />
 
+                    dataKey="pnl"
+                    name="Realized P/L"
+                    
+                />
+                
             </BarChart>
 
         </ResponsiveContainer>

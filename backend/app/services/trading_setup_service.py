@@ -155,28 +155,56 @@ def get_setup_performance(db: Session):
     winner_count = len(winners)
     loser_count = len(losers)
 
-    take_profit_trades = sum(
-        1
-        for setup in setups
-        if setup.status == "HIT_TP"
-    )
-
-    stop_loss_trades = sum(
-        1
-        for setup in setups
-        if setup.status == "HIT_SL"
-    )
-
-    long_trades = sum(
-        1
-        for setup in setups
+    long_setups = [
+        setup for setup in setups
         if setup.direction == "LONG"
+    ]
+
+    short_setups = [
+        setup for setup in setups
+        if setup.direction == "SHORT"
+    ]
+
+    tp_setups = [
+        setup for setup in setups
+        if setup.status == "HIT_TP"
+    ]
+
+    sl_setups = [
+        setup for setup in setups
+        if setup.status == "HIT_SL"
+    ]
+
+    long_pnl = sum(
+        float(setup.realized_pnl or 0)
+        for setup in long_setups
     )
 
-    short_trades = sum(
+    short_pnl = sum(
+        float(setup.realized_pnl or 0)
+        for setup in short_setups
+    )
+
+    tp_pnl = sum(
+        float(setup.realized_pnl or 0)
+        for setup in tp_setups
+    )
+
+    sl_pnl = sum(
+        float(setup.realized_pnl or 0)
+        for setup in sl_setups
+    )
+
+    long_winners = sum(
         1
-        for setup in setups
-        if setup.direction == "SHORT"
+        for setup in long_setups
+        if float(setup.realized_pnl or 0) > 0
+    )
+
+    short_winners = sum(
+        1
+        for setup in short_setups
+        if float(setup.realized_pnl or 0) > 0
     )
 
     realized_pnl = sum(pnls)
@@ -186,6 +214,21 @@ def get_setup_performance(db: Session):
         if total > 0
         else 0
     )
+
+    long_win_rate = (
+        (long_winners / len(long_setups)) * 100
+        if long_setups
+        else 0
+    )
+
+    short_win_rate = (
+        (short_winners / len(short_setups)) * 100
+        if short_setups
+        else 0
+    )
+
+    take_profit_trades = len(tp_setups)
+    stop_loss_trades = len(sl_setups)
 
     take_profit_rate = (
         (take_profit_trades / total) * 100
@@ -287,7 +330,7 @@ def get_setup_performance(db: Session):
             "closed_at": setup.closed_at,
             "realized_pnl": round(pnl, 2),
             "equity": round(cumulative_pnl, 2),
-})
+        })
 
     return {
         "trades": total,
@@ -295,31 +338,45 @@ def get_setup_performance(db: Session):
         "winners": winner_count,
         "losers": loser_count,
         "win_rate": round(win_rate, 2),
+
         "take_profit_trades": take_profit_trades,
         "stop_loss_trades": stop_loss_trades,
         "take_profit_rate": round(take_profit_rate, 2),
         "stop_loss_rate": round(stop_loss_rate, 2),
-        "long_trades": long_trades,
-        "short_trades": short_trades,
+
+        "long_trades": len(long_setups),
+        "short_trades": len(short_setups),
+        "long_win_rate": round(long_win_rate, 2),
+        "short_win_rate": round(short_win_rate, 2),
+
         "realized_pnl": round(realized_pnl, 2),
+        "long_pnl": round(long_pnl, 2),
+        "short_pnl": round(short_pnl, 2),
+        "take_profit_pnl": round(tp_pnl, 2),
+        "stop_loss_pnl": round(sl_pnl, 2),
+
         "average_pnl": round(average_pnl, 2),
         "average_winner": round(average_winner, 2),
         "average_loser": round(average_loser, 2),
         "gross_profit": round(gross_profit, 2),
         "gross_loss": round(gross_loss, 2),
+
         "profit_factor": (
             round(profit_factor, 2)
             if profit_factor is not None
             else None
         ),
+
         "expectancy": round(expectancy, 2),
         "best_trade": round(best_trade, 2),
         "worst_trade": round(worst_trade, 2),
+
         "average_risk_reward": (
             round(average_risk_reward, 2)
             if average_risk_reward is not None
             else None
         ),
+
         "max_drawdown": round(max_drawdown, 2),
         "equity": equity,
     }
