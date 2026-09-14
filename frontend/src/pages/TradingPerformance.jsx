@@ -1,4 +1,19 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
+
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+} from "recharts";
 
 import {
     getTradingSetupPerformance,
@@ -176,11 +191,60 @@ const averageRiskReward =
         ? Number(performance.average_risk_reward)
         : null;
 
-    const equity = Array.isArray(
-        performance?.equity
-    )
-        ? performance.equity
-        : [];
+const equity = Array.isArray(
+    performance?.equity
+)
+    ? performance.equity
+    : [];
+
+const equityChartData = equity.map(
+(item, index) => ({
+    trade: index + 1,
+    pnl: Number(
+        item.realized_pnl || 0
+    ),
+    equity: Number(
+        item.equity || 0
+    ),
+    })
+);
+
+const symbolChartData =
+    symbolPerformance.map(
+        (item) => ({
+            symbol: item.symbol,
+            pnl: Number(
+                item.realized_pnl || 0
+            ),
+            trades: Number(
+                item.trades || 0
+            ),
+            winRate: Number(
+                item.win_rate || 0
+            ),
+        })
+    );
+const directionChartData = [
+    {
+        name: "LONG",
+        trades: longTrades,
+    },
+    {
+        name: "SHORT",
+        trades: shortTrades,
+    },
+];
+
+const outcomeChartData = [
+    {
+        name: "TAKE PROFIT",
+        trades: takeProfitTrades,
+    },
+    {
+        name: "STOP LOSS",
+        trades: stopLossTrades,
+    },
+];
 
 
     return (
@@ -365,8 +429,15 @@ const averageRiskReward =
 
                 <div className="scanner-summary-card">
                     <span>BEST TRADE</span>
-                    <strong className="equity-positive">
-                        +${bestTrade.toFixed(2)}
+                    <strong
+                        className={
+                            bestTrade >= 0
+                                ? "equity-positive"
+                                : "equity-negative"
+                        }
+                    >
+                        {bestTrade >= 0 ? "+" : ""}
+                        ${bestTrade.toFixed(2)}
                     </strong>
                 </div>
 
@@ -666,7 +737,9 @@ const averageRiskReward =
                         <div className="equity-chart-footer">
 
                             <span>
-                                {equity.length} operaciones
+                                {equity.length === 1
+                                        ? "1 operación"
+                                        : `${equity.length} operaciones`}
                             </span>
 
                             <span>
@@ -680,6 +753,81 @@ const averageRiskReward =
                 )}
 
             </section>
+
+            {/* =================================
+    P&L CHART
+================================= */}
+
+<section className="scanner-section">
+
+    <div className="scanner-section-header">
+
+        <h2>
+            P&L PERFORMANCE
+        </h2>
+
+    </div>
+
+
+    {equityChartData.length === 0 ? (
+
+        <div className="scanner-empty">
+            No hay datos suficientes para mostrar el gráfico.
+        </div>
+
+    ) : (
+
+        <div className="equity-chart-container">
+
+            <ResponsiveContainer
+                width="100%"
+                height={320}
+            >
+
+                <LineChart
+                    data={equityChartData}
+                    margin={{
+                        top: 20,
+                        right: 20,
+                        left: 10,
+                        bottom: 10,
+                    }}
+                >
+
+                    <CartesianGrid
+                        strokeDasharray="3 3"
+                    />
+
+                    <XAxis
+                        dataKey="trade"
+                        tickFormatter={
+                            (value) =>
+                                `#${value}`
+                        }
+                    />
+
+                    <YAxis
+                        tickFormatter={(value) =>
+                            `$${Number(value).toFixed(0)}`
+                        }
+                    />
+
+                    <Line
+                        type="monotone"
+                        dataKey="equity"
+                        strokeWidth={3}
+                        dot={false}
+                    />
+
+                </LineChart>
+
+            </ResponsiveContainer>
+
+        </div>
+
+    )}
+
+</section>
 
 
             {/* =================================
@@ -893,8 +1041,191 @@ const averageRiskReward =
                     </h2>
 
                 </div>
+{/* =================================
+    P&L BY ASSET
+================================= */}
+
+<section className="scanner-section">
+
+    <div className="scanner-section-header">
+
+        <h2>
+            P&L BY ASSET
+        </h2>
+
+    </div>
 
 
+    {symbolChartData.length === 0 ? (
+
+        <div className="scanner-empty">
+            No hay datos suficientes para mostrar el gráfico.
+        </div>
+
+    ) : (
+
+        <div className="equity-chart-container">
+
+            <ResponsiveContainer
+                width="100%"
+                height={320}
+            >
+
+                <BarChart
+                    data={symbolChartData}
+                    margin={{
+                        top: 20,
+                        right: 20,
+                        left: 10,
+                        bottom: 10,
+                    }}
+                >
+
+                    <CartesianGrid
+                        strokeDasharray="3 3"
+                    />
+
+                    <XAxis
+                        dataKey="symbol"
+                    />
+
+                    <YAxis
+                        tickFormatter={(value) =>
+                            `$${Number(value).toFixed(0)}`
+                        }
+                    />
+
+                    <Bar
+                        dataKey="pnl"
+                        name="Realized P/L"
+                    />
+
+                </BarChart>
+
+            </ResponsiveContainer>
+
+        </div>
+
+    )}
+
+</section>
+
+{/* =================================
+    LONG VS SHORT
+================================= */}
+
+<section className="scanner-section">
+
+    <div className="scanner-section-header">
+
+        <h2>
+            LONG VS SHORT
+        </h2>
+
+    </div>
+
+
+    <div className="equity-chart-container">
+
+        <ResponsiveContainer
+            width="100%"
+            height={300}
+        >
+
+            <BarChart
+                data={directionChartData}
+                margin={{
+                    top: 20,
+                    right: 20,
+                    left: 10,
+                    bottom: 10,
+                }}
+            >
+
+                <CartesianGrid
+                    strokeDasharray="3 3"
+                />
+
+                <XAxis
+                    dataKey="name"
+                />
+
+                <YAxis
+                    allowDecimals={false}
+                />
+
+                <Tooltip />
+
+                <Bar
+                    dataKey="trades"
+                    name="Trades"
+                />
+
+            </BarChart>
+
+        </ResponsiveContainer>
+
+    </div>
+
+</section>
+{/* =================================
+    TAKE PROFIT VS STOP LOSS
+================================= */}
+
+<section className="scanner-section">
+
+    <div className="scanner-section-header">
+
+        <h2>
+            TAKE PROFIT VS STOP LOSS
+        </h2>
+
+    </div>
+
+
+    <div className="equity-chart-container">
+
+        <ResponsiveContainer
+            width="100%"
+            height={300}
+        >
+
+            <BarChart
+                data={outcomeChartData}
+                margin={{
+                    top: 20,
+                    right: 20,
+                    left: 10,
+                    bottom: 10,
+                }}
+            >
+
+                <CartesianGrid
+                    strokeDasharray="3 3"
+                />
+
+                <XAxis
+                    dataKey="name"
+                />
+
+                <YAxis
+                    allowDecimals={false}
+                />
+
+                <Tooltip />
+
+                <Bar
+                    dataKey="trades"
+                    name="Trades"
+                />
+
+            </BarChart>
+
+        </ResponsiveContainer>
+
+    </div>
+
+</section>
                 {symbolPerformance.length === 0 ? (
 
                     <div className="scanner-empty">

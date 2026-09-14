@@ -276,18 +276,18 @@ def get_setup_performance(db: Session):
         )
 
         equity.append({
-                "id": setup.id,
-                "symbol": setup.symbol,
-                "direction": setup.direction,
-                "status": setup.status,
-                "entry": setup.entry,
-                "exit_price": setup.exit_price,
-                "quantity": setup.quantity,
-                "risk_reward": setup.risk_reward,
-                "closed_at": setup.closed_at,
-                "realized_pnl": round(pnl, 2),
-                "equity": round(cumulative_pnl, 2),
-            })
+            "id": setup.id,
+            "symbol": setup.symbol,
+            "direction": setup.direction,
+            "status": setup.status,
+            "entry": setup.entry,
+            "exit_price": setup.exit_price,
+            "quantity": setup.quantity,
+            "risk_reward": setup.risk_reward,
+            "closed_at": setup.closed_at,
+            "realized_pnl": round(pnl, 2),
+            "equity": round(cumulative_pnl, 2),
+})
 
     return {
         "trades": total,
@@ -455,4 +455,3 @@ def get_performance_by_symbol(db: Session):
         results.append(item)
 
     return results
-
